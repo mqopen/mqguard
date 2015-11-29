@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+        body {
+          font: 10px sans-serif;
+        }
+        </style>
+        <script type="text/javascript">
+            var exampleSocket = new WebSocket("ws://localhost:8765/");
+            exampleSocket.onmessage = function (event) {
+                document.getElementById("label").textContent = event.data;
+                console.log(event.data);
+            }
+        </script>
+    </head>
+    <body>
+        <h1 id="label">0</h1>
+    </body>
+</html>
