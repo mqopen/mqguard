@@ -100,29 +100,29 @@ class RangeAlarm(BaseAlarm):
     Alarm for checking valid range of data
     """
 
-    def __init__(self, lowerRange, upperRange):
+    def __init__(self, lowerLimit, upperLimit):
         BaseAlarm.__init__(self, AlarmType.messageDriven)
-        self.lowerRange = lowerRange
-        self.upperRange = upperRange
+        self.lowerLimit = lowerLimit
+        self.upperLimit = upperLimit
 
     @classmethod
-    def doubleRange(cls, lowerRange, upperRange):
-        return cls(lowerRange, upperRange)
+    def atInterval(cls, lowerLimit, upperLimit):
+        return cls(lowerLimit, upperLimit)
 
     @classmethod
-    def lowerRange(cls, lowerRange):
-        return cls(lowerRange, float('inf'))
+    def lowerLimit(cls, lowerLimit):
+        return cls(lowerLimit, float('inf'))
 
     @classmethod
-    def upperRange(cls, upperRange):
-        return cls(float('-inf'), upperRange)
+    def upperLimit(cls, upperLimit):
+        return cls(float('-inf'), upperLimit)
 
     def checkDecodedMessage(self, dataIdentifier, data):
         try:
             value = float(data)
-            if value < self.lowerRange:
+            if value < self.lowerLimit:
                 return (False, "Lower value")
-            if value > self.upperRange:
+            if value > self.upperLimit:
                 return (False, "Upper value")
             return (True, None)
         except ValueError as ex:

@@ -1,4 +1,18 @@
 #!/usr/bin/env python3
+# Copyright (C) Ivo Slanina <ivo.slanina@gmail.com>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import asyncio
 import websockets
@@ -21,9 +35,7 @@ def _main():
             yield from websocket.send("{}".format(i))
             i += 1
             yield from asyncio.sleep(1)
-
     start_server = websockets.serve(hello, 'localhost', 8765)
-
     asyncio.get_event_loop().run_until_complete(start_server)
     asyncio.get_event_loop().run_forever()
 
@@ -41,7 +53,8 @@ def main():
 
     # Create update guards.
     testDeviceTemperatureGuard = UpdateGuard("temperature-guard", DataIdentifier(testBroker, "chrudim/living-room-up/temperature"))
-    testDeviceTemperatureGuard.addAlarm(RangeAlarm.doubleRange(-10, 10))
+    testDeviceTemperatureGuard.addPresenceGuard(DataIdentifier(testBroker, "chrudim/presence/living-room-up-dht"), ("online", "offline"))
+    testDeviceTemperatureGuard.addAlarm(RangeAlarm.atInterval(-10, 10))
 
     testDeviceHumidityGuard = UpdateGuard("humidity-guard", DataIdentifier(testBroker, "chrudim/living-room-up/humidity"))
 
