@@ -36,8 +36,10 @@ Configuration file is divided into multiple sections which forms tree-like struc
 
 #### Guard section
 
-Guard section contains MQTT topics as keys and update sections as their values.
+Guard section contains broker name and MQTT topic as key and update sections as value.
 There must be at least one section specified.
+
+Example: `my-broker my/broker/topic = update-section`
 
 #### Update section
 
