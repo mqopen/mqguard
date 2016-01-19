@@ -19,26 +19,42 @@ Supervising at endividual MQTT endpoints.
 
 from mqreceive.data import DataIdentifier
 from mqguard.alarms import AlarmType
+from mqguard.reporting import ReportResult
 
 class DeviceRegistry:
     """!
     Group all guarded devices in single registry.
     """
 
-    def __init__(self):
+    def __init__(self, reportManager):
+        self.reportManager = reportManager
+        self.periodicChecker = PeriodicChecker(self)
         self.guardedDevices = []
-        self.loggers = []
 
     def addGuardedDevice(self, deviceGuard):
         self.guardedDevices.append(deviceGuard)
 
-    def addLogger(self, logger):
-        self.loggers.append(logger)
-
     def onMessage(self, broker, topic, data):
         dataIdentifier = DataIdentifier(broker, topic)
         for deviceGuard in self.guardedDevices:
-            deviceGuard.messageReceived(dataIdentifier, data)
+            reportResult = deviceGuard.messageReceived(dataIdentifier, data)
+            if reportResult.isErrorOccured():
+                self.reportManager.reportStatus(reportResult)
+
+    def onPeriodicCheck(self):
+        for deviceGuard in self.guardedDevices:
+            deviceGuard.onPeriodic()
+
+class PeriodicChecker:
+
+    # TODO: refactor registry to more meaningful name
+    def __init__(self, registry):
+        self.registry = registry
+
+    def __call__(self):
+        """!
+        Periodically invoke check logic.
+        """
 
 class DeviceGuard:
     """!
@@ -75,10 +91,13 @@ class DeviceGuard:
         """!
         New message was received.
         """
+        errors = []
         for updateGuard in self.updateGuards:
             if updateGuard.isUpdateRelevant(dataIdentifier):
-                result, message = updateGuard.getUpdateCheck(dataIdentifier, data)
-                # TODO: process check result
+                isOK, message = updateGuard.getUpdateCheck(dataIdentifier, data)
+                if not isOK:
+                    errors.append(message)
+        return ReportResult(self.name, errors)
 
     def onPeriodic(self):
         """!
@@ -134,8 +153,8 @@ class UpdateGuard:
         """
         for alarm in self.messageAlarms:
             result, message = alarm.checkMessage(dataIdentifier, payload)
-            if result is False:
-                return (False, message)
+            if not result:
+                return (result, message)
         return (True, None)
 
     def getPeriodicCheck(self):

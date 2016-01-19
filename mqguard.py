@@ -25,6 +25,7 @@ from mqreceive.data import DataIdentifier
 
 from mqguard.supervising import DeviceGuard, UpdateGuard, DeviceRegistry
 from mqguard.alarms import RangeAlarm
+from mqguard.reporting import ReportingManager, PrintReporter
 
 def _main():
     @asyncio.coroutine
@@ -41,7 +42,9 @@ def _main():
 
 def main():
 
-    deviceRegistry = DeviceRegistry()
+    reportingManager = ReportingManager()
+    reportingManager.addReporter(PrintReporter())
+    deviceRegistry = DeviceRegistry(reportingManager)
 
     # Create broker object.
     testBroker = Broker("Test", sys.argv[1])
@@ -50,11 +53,13 @@ def main():
 
     # Define device.
     testDevice = DeviceGuard("cr-livingroom-sensor")
+    testDevice.addPresenceGuard(
+            DataIdentifier(testBroker, "chrudim/presence/living-room-up-dht"),
+            ("online", "offline"))
 
     # Create update guards.
     testDeviceTemperatureGuard = UpdateGuard("temperature-guard", DataIdentifier(testBroker, "chrudim/living-room-up/temperature"))
-    testDeviceTemperatureGuard.addPresenceGuard(DataIdentifier(testBroker, "chrudim/presence/living-room-up-dht"), ("online", "offline"))
-    testDeviceTemperatureGuard.addAlarm(RangeAlarm.atInterval(-10, 10))
+    testDeviceTemperatureGuard.addAlarm(RangeAlarm.atInterval(-1, 1))
 
     testDeviceHumidityGuard = UpdateGuard("humidity-guard", DataIdentifier(testBroker, "chrudim/living-room-up/humidity"))
 

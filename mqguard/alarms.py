@@ -23,18 +23,25 @@ class AlarmType(Enum):
     messageDriven = 1
     periodic = 2
 
+class AlarmPriority(Enum):
+    errorCode = 1
+    dataType = 2
+    value = 3
+    other = 4
+
 class BaseAlarm:
     """!
     Basic alarm implementation.
     """
 
-    def __init__(self, alarmType):
+    def __init__(self, alarmType, alarmPriority):
         """!
         Initiate object:
 
         @param alarmType Type of alarm
         """
         self.alarmType = alarmType
+        self.alarmPriority = alarmPriority
 
     # TODO: consider raising an exception
 
@@ -75,8 +82,8 @@ class TimedAlarm(BaseAlarm):
     ## @var period
     # Time period
 
-    def __init__(self, alarmType, period):
-        BaseAlarm.__init__(self, alarmType)
+    def __init__(self, alarmType, alarmPriority, period):
+        BaseAlarm.__init__(self, alarmType, alarmPriority)
         self.period = period
 
 class FloodingAlarm(TimedAlarm):
@@ -85,7 +92,7 @@ class FloodingAlarm(TimedAlarm):
     """
 
     def __init__(self, period):
-        TimedAlarm.__init__(self, AlarmType.messageDriven, period)
+        TimedAlarm.__init__(self, AlarmType.messageDriven, AlarmPriority.other, period)
 
 class TimeoutAlarm(TimedAlarm):
     """!
@@ -93,7 +100,7 @@ class TimeoutAlarm(TimedAlarm):
     """
 
     def __init__(self, period):
-        TimedAlarm.__init__(self, AlarmType.periodic, period)
+        TimedAlarm.__init__(self, AlarmType.periodic, AlarmPriority.other, period)
 
 class RangeAlarm(BaseAlarm):
     """!
@@ -101,7 +108,7 @@ class RangeAlarm(BaseAlarm):
     """
 
     def __init__(self, lowerLimit, upperLimit):
-        BaseAlarm.__init__(self, AlarmType.messageDriven)
+        BaseAlarm.__init__(self, AlarmType.messageDriven, AlarmPriority.value)
         self.lowerLimit = lowerLimit
         self.upperLimit = upperLimit
 
@@ -121,12 +128,12 @@ class RangeAlarm(BaseAlarm):
         try:
             value = float(data)
             if value < self.lowerLimit:
-                return (False, "Lower value")
+                return (False, "Value {} exceeds minimum allowed range ({})".format(value, self.lowerLimit))
             if value > self.upperLimit:
-                return (False, "Upper value")
+                return (False, "Value {} exceeds maximum allowed range ({})".format(value, self.upperLimit))
             return (True, None)
         except ValueError as ex:
-            return (False, "Can't decode value as number")
+            return (False, "Can't decode value '{}' as a number".format(data))
 
 class PresenceAlarm(BaseAlarm):
     """!
@@ -134,7 +141,7 @@ class PresenceAlarm(BaseAlarm):
     """
 
     def __init__(self, presenceDataIdentifier, presenceMessages):
-        BaseAlarm.__init__(self, AlarmType.messageDriven)
+        BaseAlarm.__init__(self, AlarmType.messageDriven, AlarmPriority.value)
         self.presenceDataIdentifier = presenceDataIdentifier
         self.presenceOnline, self.preseceOffline = presenceMessages
 
@@ -157,7 +164,7 @@ class ErrorCodesAlarm(BaseAlarm):
 
         @param errorCodes Iterable of error codes.
         """
-        BaseAlarm.__init__(self, AlarmType.messageDriven)
+        BaseAlarm.__init__(self, AlarmType.messageDriven, AlarmPriority.errorCode)
         self.errorCodes = errorCodes
 
     def checkDecodedMessage(self, dataIdentifier, data):
@@ -165,3 +172,16 @@ class ErrorCodesAlarm(BaseAlarm):
             return (False, "Error code detected: {}".format(data))
         else:
             return (True, None)
+
+class DataTypeAlarm(BaseAlarm):
+    def __init__(self, dataFilter):
+        BaseAlarm.__init__(self, AlarmType.messageDriven, AlarmPriority.dataType)
+    @classmethod
+    def numeric(cls, additions = []):
+        return None
+    @classmethod
+    def alphanumeric(cls, additions = []):
+        return None
+    @classmethod
+    def alphabetic(cls, additions = []):
+        return None

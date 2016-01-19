@@ -17,17 +17,101 @@
 Sending reports.
 """
 
-class WebsocketReporter:
+class ReportResult:
+    """!
+    Representation of report information.
+    """
+
+    def __init__(self, device, reasons):
+        """!
+        Initiate report result object.
+
+        @param device Device representation.
+        """
+        self.device = device
+        self.reasons = reasons
+
+    @classmethod
+    def noError(cls, device):
+        return cls(device, [])
+
+    def isErrorOccured(self):
+        """!
+        Check if device error has occured.
+
+        @return True if error occured, False otherwise.
+        """
+        return len(self.reasons) > 0
+
+class ReportingManager:
+    """!
+    Managing group of reporters.
+    """
+
+    def __init__(self):
+        """!
+        Initialize report manager.
+        """
+        self.reporters = []
+
+    def addReporter(self, reporter):
+        self.reporters.append(reporter)
+
+    def addDevice(self, device):
+        for reporter in self.reporters:
+            reporter.addDevice(device)
+
+    def reportStatus(self, event):
+        """!
+        Report new event.
+
+        @param event Event object.
+        """
+        for reporter in self.reporters:
+            reporter.reportStatus(event)
+
+class BaseReporter:
+    """!
+    Reporter base class.
+    """
+
+    def __init__(self):
+        """!
+        Initialize reporter.
+        """
+        self.devices = []
+
+    def addDevice(self, device):
+        self.devices.append(device)
+
+    def reportStatus(self, event):
+        """!
+        Report new event.
+
+        @param event Event object.
+        """
+
+class WebsocketReporter(BaseReporter):
     """!
     Sending reports over websockets.
     """
 
-class LogReporter:
+class LogReporter(BaseReporter):
     """!
     Plain text logs.
     """
 
-class DatabaseReporter:
+class DatabaseReporter(BaseReporter):
     """!
     Report errors into database.
     """
+
+class PrintReporter(BaseReporter):
+    """!
+    Debug reporter.
+    """
+
+    def reportStatus(self, result):
+        print("registerred {} errors:".format(len(result.reasons)))
+        for reason in result.reasons:
+            print("{}{}".format(" " * 2, reason))
