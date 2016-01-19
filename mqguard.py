@@ -25,7 +25,7 @@ from mqreceive.data import DataIdentifier
 
 from mqguard.supervising import DeviceGuard, UpdateGuard, DeviceRegistry
 from mqguard.alarms import RangeAlarm
-from mqguard.reporting import ReportingManager, PrintReporter
+from mqguard.reporting import ReportingManager, SocketReporter
 
 def _main():
     @asyncio.coroutine
@@ -43,7 +43,7 @@ def _main():
 def main():
 
     reportingManager = ReportingManager()
-    reportingManager.addReporter(PrintReporter())
+    reportingManager.addReporter(SocketReporter(None, None, ("0.0.0.0", 6666)))
     deviceRegistry = DeviceRegistry(reportingManager)
 
     # Create broker object.
@@ -69,6 +69,9 @@ def main():
     # Add guard object to device.
     testDevice.addUpdateGuard(testDeviceTemperatureGuard)
     testDevice.addUpdateGuard(testDeviceHumidityGuard)
+
+    # Start reporting threads.
+    reportingManager.start()
 
     # Start receiver thread.
     brokerReceiver()
