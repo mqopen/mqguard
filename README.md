@@ -4,19 +4,23 @@
 
 Configuration file is divided into multiple sections which forms tree-like structure.
 
-#### `[Global]` section
-
- - `ListenAddress` - Websocket listen address. *Default: `0.0.0.0`*
- - `ListenPort` - Websocket listen port. *Default: `80`*
- - `OutputFormat` - Preffered websocket output format. *Default: `json`*
-   - `json` - JSON format.
-   - `xml` - XML format.
-
 #### `[Brokers]` section
 
 **Mandatory section.**
 
  - `Enabled` - List of enabled MQTT brokers. **Mandatory.**
+
+#### `[Devices]` section
+
+**Mandatory section.**
+
+ - `Enabled` - List of monitored devices. **Mandatory.**
+
+#### `[Reporters]` section
+
+**Mandatory section.**
+
+ - `Enabled` - List of enabled reporter sections. **Mandatory.**
 
 #### Broker section
 
@@ -25,7 +29,6 @@ Configuration file is divided into multiple sections which forms tree-like struc
  - `Host` - Broker listen address. *Default: `localhost`*
  - `Port` - Broker listen port. *Default: `1883`*
  - `PresenceTopic` - Topic name for presence messages.
- - `Devices` - List of monitored devices. **Mandatory.**
 
 #### Device section
 
@@ -52,3 +55,29 @@ Example: `my-broker my/broker/topic = update-section`
  - `ErrorCodes` - List of update error codes.
  - `ValidRangeMin` - Minimum update value. *Numeric type only.*
  - `ValidRangeMax` - Maximum update value. *Numeric type only.*
+
+#### Reporter section
+
+ - `Type` - Reporter type.
+   - `websocket` - Websocket reporter.
+   - `logging` - Logging errors into log file.
+   - `database` - Log errors into database.
+   - `mail` - Notify error via e-mail.
+
+##### Options for `websocket` reporter
+
+ - `ListenAddress` - Websocket listen address. *Default: `0.0.0.0`*
+ - `ListenPort` - Websocket listen port. *Default: `80`*
+ - `OutputFormat` - Preffered websocket output format. *Default: `json`*
+   - `json` - JSON format.
+   - `xml` - XML format.
+   - `plain` - Plain text format. Similar to `logging` reporter type, except logs
+    are send over websocket channel.
+
+##### Options for `logging` reporter
+
+ - _**TODO**_
+
+##### Options for `mail` reporter
+
+ - _**TODO**_
