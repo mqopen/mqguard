@@ -36,7 +36,7 @@ Brokers are defined by combination of its name, host and port. Broker name must 
  - `Password` - Broker password. *Mandatory if `Username` is defined.*
  - `Host` - Broker listen address. *Default: `localhost`*
  - `Port` - Broker listen port. *Default: `1883`*
- - `PresenceTopic` - Topic name for presence messages.
+ - `Topic` - Space separated list of topic subscriptions. **Mandatory.**
 
 #### Device section
 
