@@ -14,67 +14,42 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import asyncio
-import websockets
 import sys
+import threading
 
-from mqreceive.broker import Broker
-from mqreceive.receiving import BrokerReceiver
-from mqreceive.broker import Broker
-from mqreceive.data import DataIdentifier
+from mqreceive.receiving import BrokerThreadManager
 
-from mqguard.supervising import DeviceGuard, UpdateGuard, DeviceRegistry
-from mqguard.alarms import RangeAlarm
-from mqguard.reporting import ReportingManager, SocketReporter
-
-def _main():
-    @asyncio.coroutine
-    def hello(websocket, path):
-        print(path)
-        i = 0
-        while True:
-            yield from websocket.send("{}".format(i))
-            i += 1
-            yield from asyncio.sleep(1)
-    start_server = websockets.serve(hello, 'localhost', 8765)
-    asyncio.get_event_loop().run_until_complete(start_server)
-    asyncio.get_event_loop().run_forever()
+from mqguard.supervising import DeviceRegistry
+from mqguard.reporting import ReportingManager
+from mqguard.system import System
 
 def main():
+    System.initialize()
 
     reportingManager = ReportingManager()
-    reportingManager.addReporter(SocketReporter(None, None, ("0.0.0.0", 6666)))
+    for reporter in System.getReporters():
+        reportingManager.addReporter(reporter)
     deviceRegistry = DeviceRegistry(reportingManager)
 
-    # Create broker object.
-    testBroker = Broker("Test", sys.argv[1])
-    testBroker.setCredentials(sys.argv[2], sys.argv[3])
-    brokerReceiver = BrokerReceiver("Test", (testBroker, ["#"]), deviceRegistry)
+    listenDescriptors = System.getBrokerListenDescriptors()
+    brokerThreadManager = BrokerThreadManager(listenDescriptors, deviceRegistry)
 
-    # Define device.
-    testDevice = DeviceGuard("cr-livingroom-sensor")
-    testDevice.addPresenceGuard(
-            DataIdentifier(testBroker, "chrudim/presence/living-room-up-dht"),
-            ("online", "offline"))
-
-    # Create update guards.
-    testDeviceTemperatureGuard = UpdateGuard("temperature-guard", DataIdentifier(testBroker, "chrudim/living-room-up/temperature"))
-    testDeviceTemperatureGuard.addAlarm(RangeAlarm.atInterval(-1, 1))
-
-    testDeviceHumidityGuard = UpdateGuard("humidity-guard", DataIdentifier(testBroker, "chrudim/living-room-up/humidity"))
-
-    # Add device into registry.
-    deviceRegistry.addGuardedDevice(testDevice)
-
-    # Add guard object to device.
-    testDevice.addUpdateGuard(testDeviceTemperatureGuard)
-    testDevice.addUpdateGuard(testDeviceHumidityGuard)
+    for device in System.getDeviceGuards():
+        deviceRegistry.addGuardedDevice(device)
 
     # Start reporting threads.
     reportingManager.start()
 
-    # Start receiver thread.
-    brokerReceiver()
+    # Start receiving threads.
+    brokerThreadManager.start()
+
+    exitLock = threading.Semaphore(value = 0)
+
+    try:
+        # Lock main thread
+        exitLock.acquire()
+    finally:
+        pass
 
 if __name__ == '__main__':
     main()
