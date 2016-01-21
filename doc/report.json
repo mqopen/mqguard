@@ -1,0 +1,69 @@
+/*
+ * Example of JSON report.
+ */
+
+// Initial data
+{
+    "feed": "init",
+    "devices": [
+        {
+            "name": "test-device",
+            "description": null,
+
+            // Current device status. Values: "ok"|"error"
+            "status": "ok",
+            "reason": null,
+            "guards": [
+                "my-broker:device/topic": [
+                    {
+                        "alarm": "range",
+                        "lowerLimit": -1,
+                        "upperLimit": 1,
+                    },
+                    {
+                        "alarm": "dataType",
+                        "validCharacters": ["a", "b"],
+                    },
+                    {
+                        "alarm": "errorCodes",
+                        "errorCodes": ["E_SYNC", "E_CONN"],
+                    },
+                ],
+            ],
+        },
+    ],
+    "brokers": [
+        {
+            "name": "my-broker",
+            "host": "localhost",
+            "port": 1883,
+            // Broker connection status. Values: "ok"|"disconnected"
+            "status": "ok",
+            // Broker connection status message.
+            "message": "ok",
+        },
+    ],
+}
+
+// Update
+{
+    "feed": "update",
+    "devices": [
+        {
+            "name": "test-device",
+            "status": "error",
+            "reason": {
+                "guard": "my-broker:device/topic",
+                "alarm": "range",
+                "message": "Data out of range",
+            },
+        },
+    ],
+    "brokers": [
+        {
+            "name": "my-broker",
+            "status": "disconnected",
+            "message": "Timed out"
+        }
+    ],
+}
