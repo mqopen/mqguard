@@ -1,5 +1,8 @@
 # mqguard - MQTT monitoring tool
 
+mqguard is tool for health monitoring and diagnostic of MQTT network. It is able
+to warn user about IoT device errors and provide real time diagnostic service.
+
 ### Configuration file syntax
 
 Configuration file is divided into multiple sections which forms tree-like structure.
@@ -109,7 +112,12 @@ _TODO:_
 
 ##### Options for `logging` reporter
 
- - _**TODO**_
+ - `File` - Absolute path to log file.
+
+_TODO:_
+
+ - Rotating logs.
+ - Log formatting.
 
 ##### Options for `mail` reporter
 
