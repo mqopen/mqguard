@@ -94,7 +94,7 @@ problems, or provide real time diagnostic information.
 _TODO:_
 
  - Add specification which devices should be reported. It is nonsense to send SMS
-    for all devices, while user is interested only about few devices. This mechanism
+    for all devices, while user is interested only about few ones. This mechanism
     should be implemented as some kind of report domain.
 
 ##### Options for `socket` and `websocket` reporter
