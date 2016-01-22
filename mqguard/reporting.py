@@ -19,29 +19,55 @@ Sending reports.
 
 import threading
 
-class ReportResult:
+class DeviceReport:
     """!
-    Representation of report information.
+    Group of device failures. Single device is represented by multiple topics and broker
+    paris. Each of this pair has multiple alarms.
+
+    Device can report failure for each pair. This class groups togeteher all these failures.
     """
 
-    def __init__(self, device, reason):
+    ## @var device
+    # Device identification object.
+
+    def __init__(self, device):
         """!
-        Initiate report result object.
+        Initialize report object.
+
+        @param device Device identification object.
         """
         self.device = device
-        self.reason = reason
+        self.reasons = []
 
-    @classmethod
-    def noError(cls, device):
-        return cls(device, None)
-
-    def isErrorOccured(self):
+    def addFailureReason(self, reason):
         """!
-        Check if device error has occured.
+        Add failure to report.
 
-        @return True if error occured, False otherwise.
+        @param reason Failure reason object.
         """
-        return self.reasons is not None
+        self.reasons.append(reason)
+
+    def hasFailures(self):
+        """!
+        Check if device has any failures.
+
+        @return True if device has failures, False otherwise.
+        """
+        return len(self.reasons) > 0
+
+class DeviceFailureReason:
+    """!
+    Single device failure
+    """
+
+    def __init__(self, failureDataIdentifier, alarm, message):
+        """!
+        Initialize failure object.
+
+        @param failureDataIdentifier DataIdentifier which causes failure.
+        @param alarm Identification of alarm which detected wrong message.
+        @param message Alarm message.
+        """
 
 class ReportingManager:
     """!
@@ -57,9 +83,9 @@ class ReportingManager:
     def addReporter(self, reporter):
         self.reporters.append(reporter)
 
-    def addDevice(self, device, deviceGuard):
+    def addDevice(self, device, guard):
         for reporter in self.reporters:
-            reporter.addDevice(device, deviceGuard)
+            reporter.addDevice(device, guard)
 
     def addBroker(self, broker):
         """!
@@ -70,7 +96,13 @@ class ReportingManager:
         """!
         Report new event.
 
-        @param event Event object.
+        @param event Tuple with following fields: (device, isOK, reason).
+            @li device Device identification.
+            @li isOK Boolean flag indicating if any error occured.
+            @li reason Reason tuple (dataIdentifier, alarmClass, message).
+                @li dataIdentifier DataIdentifier object.
+                @li alarmClass Alarm class.
+                @li message Alarm message.
         """
         for reporter in self.reporters:
             reporter.reportStatus(event)

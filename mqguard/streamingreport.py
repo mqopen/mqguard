@@ -32,10 +32,27 @@ class StreamingReporter(BaseReporter):
         """
         BaseReporter.__init__(self, synchronizer)
         self.outputFormatter = outputFormatter
-        self.devices = []
+        self.devices = {}
 
     def addDevice(self, device, guard):
-        self.devices.append((device, guard))
+        failureSupervisor = DeviceFailureSupervisor(device)
+        for updateGuard in guard.updateGuards:
+            failureSupervisor.addUpdateGuard(updateGuard)
+        self.devices[device] = (guard, failureSupervisor)
+
+    def reportStatus(self, event):
+        device, isOK, reason = event
+        guard, failureSupervisor = self.devices[device]
+        failureSupervisor.update(isOK, reason)
+
+        for device, guard, failureSupervisor in self.devices:
+            failureSupervisor.update(event)
+            reasons = failureSupervisor.getFailureReasons()
+            self.updateReasons(reasons)
+
+    def updateReasons(self, reasons):
+        """!
+        """
 
 class SocketReporter(StreamingReporter):
     """!
@@ -91,7 +108,7 @@ class SocketReporterSession:
         self.formatter = formatter
         self.client = client
         self.address = address
-        self.eventQueue = queue.Queue()
+        self.updateQueue = queue.Queue()
         self.running = False
 
     def __call__(self):
@@ -99,9 +116,9 @@ class SocketReporterSession:
         toSend = "{}\n".format(self.formatter.getInitialData())
         self.client.send(toSend.encode("utf-8"))
         while self.running:
-            event = self.eventQueue.get()
-            if event is not None:
-                toSend = "{}\n".format(self.formatter.formatUpdate(event))
+            reasons = self.updateQueue.get()
+            if reasons is not None:
+                toSend = "{}\n".format(self.formatter.formatUpdate(reasons))
                 self.client.send(toSend.encode("utf-8"))
         self.client.close()
         self.sessionManager.sessionEnd(self)
@@ -114,13 +131,13 @@ class SocketReporterSession:
     def stop(self):
         self.running = False
         # Put None into message queue to wake up consumer thread.
-        self.eventQueue.put(None)
+        self.updateQueue.put(None)
 
     def isRunning(self):
         return self.running
 
-    def newEvent(self, event):
-        self.eventQueue.put(event)
+    def update(self, reasons):
+        self.updateQueue.put(reasons)
 
 class WebsocketReporter(StreamingReporter):
     """!
@@ -134,3 +151,30 @@ class WebsocketReporter(StreamingReporter):
         @param outputFormatter Formatter object for final report result
         """
         StreamingReporter.__init__(self, synchronizer, outputFormatter)
+
+class DeviceFailureSupervisor:
+    """!
+    Keep track of all device MQTT topic updates and their falures.
+    """
+
+    ## @var updateGuards
+    # Iterable of tuples. First element is update guard object. Second is boolean flag
+    # to keep track if that guard is in error.
+
+    def __init__(self, device):
+        self.device = device
+        self.updateGuards = []
+
+    def addUpdateGuard(self, updateGuard):
+        self.updateGuards.append(updateGuard, False)
+
+    def update(self, isOK, reason):
+        """!
+        Update supervisor.
+        """
+    def isDeviceOK(self):
+        """!
+        Check if device has any errors.
+
+        @return True if device has no registerred failure, False otherwise.
+        """

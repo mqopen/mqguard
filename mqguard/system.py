@@ -62,10 +62,10 @@ class System:
         """
         for deviceName, presence, guards in cls.configCache.devices:
             deviceGuard = DeviceGuard()
-            for dataIdentificationPrototype, alarms in guards:
+            for guardName, dataIdentificationPrototype, alarms in guards:
                 brokerName, topic = dataIdentificationPrototype
                 dataIdentifier = cls.dataIdentifierFactory.build(brokerName, topic)
-                updateGuard = UpdateGuard("SomeName", dataIdentifier)
+                updateGuard = UpdateGuard(guardName, dataIdentifier)
                 for alarm in alarms:
                     updateGuard.addAlarm(alarm)
                 deviceGuard.addUpdateGuard(updateGuard)

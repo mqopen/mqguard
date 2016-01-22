@@ -12,7 +12,7 @@
 
             // Current device status. Values: "ok"|"error"
             "status": "ok",
-            "reason": null,
+            "reasons": null,
             "guards": [
                 "my-broker:device/topic": [
                     {
@@ -55,10 +55,13 @@
         {
             "name": "test-device",
             "status": "error",
-            "reason": {
-                "guard": "my-broker:device/topic",
-                "alarm": "range",
-                "message": "Data out of range",
+            "reasons": {
+                [
+                    "guard": "my-broker:device/topic",
+                    "alarm": "range",
+                    "status": "error",
+                    "message": "Data out of range",
+                ],
             },
         },
     ],

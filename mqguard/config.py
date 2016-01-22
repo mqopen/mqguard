@@ -217,7 +217,7 @@ class ProgramConfig:
             brokerName, topic = updateGuardLine.split()
             updateGuardSection = self.parser.get(guardSection, updateGuardLine)
             updateGuard = self.createUpdateGuard(updateGuardSection)
-            yield ((brokerName, topic), updateGuard)
+            yield (guardSection, (brokerName, topic), updateGuard)
 
     def createUpdateGuard(self, updateGuardSection):
         """!

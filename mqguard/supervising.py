@@ -19,7 +19,6 @@ Supervising at endividual MQTT endpoints.
 
 from mqreceive.data import DataIdentifier
 from mqguard.alarms import AlarmType
-from mqguard.reporting import ReportResult
 
 class DeviceRegistry:
     """!
@@ -37,10 +36,8 @@ class DeviceRegistry:
     def onMessage(self, broker, topic, data):
         dataIdentifier = DataIdentifier(broker, topic)
         for device, guard in self.guardedDevices:
-            isOK, message = guard.messageReceived(dataIdentifier, data)
-            if not isOK:
-                reportResult = ReportResult(device, message)
-                self.reportManager.reportStatus(reportResult)
+            isOK, reason = guard.messageReceived(dataIdentifier, data)
+            self.reportManager.reportStatus((device, isOK, reason))
 
     def onPeriodicCheck(self):
         for device, guard in self.guardedDevices:
@@ -91,9 +88,9 @@ class DeviceGuard:
         """
         for updateGuard in self.updateGuards:
             if updateGuard.isUpdateRelevant(dataIdentifier):
-                isOK, message = updateGuard.getUpdateCheck(dataIdentifier, data)
+                isOK, reason = updateGuard.getUpdateCheck(dataIdentifier, data)
                 if not isOK:
-                    return (isOK, message)
+                    return (isOK, reason)
         return (True, None)
 
     def onPeriodic(self):
@@ -149,9 +146,9 @@ class UpdateGuard:
             is detected: (False, errorMessage).
         """
         for alarm in self.messageAlarms:
-            result, message = alarm.checkMessage(dataIdentifier, payload)
-            if not result:
-                return (result, message)
+            isOK, message = alarm.checkMessage(dataIdentifier, payload)
+            if not isOK:
+                return (isOK, (self.dataIdentifier, alarm.__class__, message))
         return (True, None)
 
     def getPeriodicCheck(self):

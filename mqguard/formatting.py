@@ -14,6 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import json
+from mqguard.system import System
 
 class FormatDataProvider:
     """!
@@ -32,6 +33,14 @@ class FormatDataProvider:
         @return Iterable of tuples (device, guard).
         """
 
+class SystemDataProvider(FormatDataProvider):
+    """!
+    Provide data from system static object.
+    """
+
+    def getBrokers(self):
+        return System.getBrokerListenDescriptors()
+
 class BaseFormatter:
     """!
     Formatter base class
@@ -49,24 +58,29 @@ class JSONFormatter(BaseFormatter):
         BaseFormatter.__init__(self, dataProvider)
         self.encoder = json.JSONEncoder(indent = 4)
 
-    def getInitialData(self):
+    def formatInitialData(self):
         """!
         """
-        data = {"foo": "bar", "seq": [x for x in range(10)]}
-        data["feed"] = "init"
+        data = {"feed": "update", "devices": [], "brokers": []}
+        for device in self.dataProvider.getDevices():
+            data["devices"].append(device)
+        for broker in self.dataProvider.getBrokers():
+            data["brokers"].append(broker)
         return self.encoder.encode(data)
 
     def formatUpdate(self, event):
         """!
         """
-        data = {}
-        data["feed"] = "update"
+        data = {"feed": "update"}
         data["devices"] = []
 
         device = {}
         device["name"] = event.device
-        device["messages"] = []
-        device["messages"].append(event.reason)
+        device["status"] = ["ok", "error"][int(event.isErrorOccured())]
+        device["reason"] = None
+        if event.isErrorOccured():
+            device["reason"] = {}
+            device["reason"]["message"] = event.reason
 
         data["devices"].append(device)
         return self.encoder.encode(data)
