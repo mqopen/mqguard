@@ -57,9 +57,11 @@ class System:
     def getDeviceGuards(cls):
         """!
         Get neabled device guards.
+
+        @return Iterable of tuples (device, guard)
         """
         for deviceName, presence, guards in cls.configCache.devices:
-            deviceGuard = DeviceGuard(deviceName)
+            deviceGuard = DeviceGuard()
             for dataIdentificationPrototype, alarms in guards:
                 brokerName, topic = dataIdentificationPrototype
                 dataIdentifier = cls.dataIdentifierFactory.build(brokerName, topic)
@@ -67,7 +69,7 @@ class System:
                 for alarm in alarms:
                     updateGuard.addAlarm(alarm)
                 deviceGuard.addUpdateGuard(updateGuard)
-            yield deviceGuard
+            yield (deviceName, deviceGuard)
 
     @classmethod
     def getReporters(cls):

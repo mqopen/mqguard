@@ -20,6 +20,7 @@ from mqreceive.broker import Broker
 # TODO: import all
 from mqguard.alarms import FloodingAlarm, TimeoutAlarm, RangeAlarm, PresenceAlarm, ErrorCodesAlarm, DataTypeAlarm
 from mqguard.streamingreport import SocketReporter
+from mqguard.formatting import JSONFormatter
 
 class ProgramConfig:
     """!
@@ -296,7 +297,7 @@ class ProgramConfig:
         """
         listenAddress = self.parser.get(reporterSection, "ListenAddress")
         listenPort = self.parser.getint(reporterSection, "ListenPort")
-        return SocketReporter(None, None, (listenAddress, listenPort))
+        return SocketReporter(None, JSONFormatter(None), (listenAddress, listenPort))
 
 ### Common #####################################################################
 

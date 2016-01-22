@@ -37,6 +37,9 @@
             "name": "my-broker",
             "host": "localhost",
             "port": 1883,
+            "subscriptions": ["#"],
+            // False is broker requires credentials.
+            "public": false,
             // Broker connection status. Values: "ok"|"disconnected"
             "status": "ok",
             // Broker connection status message.

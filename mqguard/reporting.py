@@ -24,18 +24,16 @@ class ReportResult:
     Representation of report information.
     """
 
-    def __init__(self, device, reasons):
+    def __init__(self, device, reason):
         """!
         Initiate report result object.
-
-        @param device Device representation.
         """
         self.device = device
-        self.reasons = reasons
+        self.reason = reason
 
     @classmethod
     def noError(cls, device):
-        return cls(device, [])
+        return cls(device, None)
 
     def isErrorOccured(self):
         """!
@@ -43,7 +41,7 @@ class ReportResult:
 
         @return True if error occured, False otherwise.
         """
-        return len(self.reasons) > 0
+        return self.reasons is not None
 
 class ReportingManager:
     """!
@@ -59,9 +57,14 @@ class ReportingManager:
     def addReporter(self, reporter):
         self.reporters.append(reporter)
 
-    def addDevice(self, device):
+    def addDevice(self, device, deviceGuard):
         for reporter in self.reporters:
-            reporter.addDevice(device)
+            reporter.addDevice(device, deviceGuard)
+
+    def addBroker(self, broker):
+        """!
+        Add broker object.
+        """
 
     def reportStatus(self, event):
         """!
@@ -100,10 +103,13 @@ class BaseReporter:
         self.synchronizer = synchronizer
         self.running = False
 
-    def addDevice(self, device):
+    def addDevice(self, device, guard):
         """!
         Add device to reporter. Reporter implementation can override this method to
         keep track of its devices.
+
+        @param device Device object.
+        @param guard DeviceGuard object.
         """
 
     def reportStatus(self, event):

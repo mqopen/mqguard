@@ -34,8 +34,9 @@ def main():
     listenDescriptors = System.getBrokerListenDescriptors()
     brokerThreadManager = BrokerThreadManager(listenDescriptors, deviceRegistry)
 
-    for device in System.getDeviceGuards():
-        deviceRegistry.addGuardedDevice(device)
+    for device, guard in System.getDeviceGuards():
+        deviceRegistry.addGuardedDevice(device, guard)
+        reportingManager.addDevice(device, guard)
 
     # Start reporting threads.
     reportingManager.start()

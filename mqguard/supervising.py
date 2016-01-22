@@ -31,19 +31,20 @@ class DeviceRegistry:
         self.periodicChecker = PeriodicChecker(self)
         self.guardedDevices = []
 
-    def addGuardedDevice(self, deviceGuard):
-        self.guardedDevices.append(deviceGuard)
+    def addGuardedDevice(self, device, guard):
+        self.guardedDevices.append((device, guard))
 
     def onMessage(self, broker, topic, data):
         dataIdentifier = DataIdentifier(broker, topic)
-        for deviceGuard in self.guardedDevices:
-            reportResult = deviceGuard.messageReceived(dataIdentifier, data)
-            if reportResult.isErrorOccured():
+        for device, guard in self.guardedDevices:
+            isOK, message = guard.messageReceived(dataIdentifier, data)
+            if not isOK:
+                reportResult = ReportResult(device, message)
                 self.reportManager.reportStatus(reportResult)
 
     def onPeriodicCheck(self):
-        for deviceGuard in self.guardedDevices:
-            deviceGuard.onPeriodic()
+        for device, guard in self.guardedDevices:
+            guard.onPeriodic()
 
 class PeriodicChecker:
 
@@ -58,22 +59,19 @@ class PeriodicChecker:
 
 class DeviceGuard:
     """!
-    Guarding single device.
+    Guarding single device. Device guard groups multimple DataIdentifier objectcs and
+    theie alarms. It also have responsibility for checking presence messages.
     """
-
-    ## @var name
-    # Device name.
 
     ## @var updateGuards
     # List of update guards objects.
 
-    def __init__(self, name):
+    def __init__(self):
         """!
         Initiate guarded device.
 
         @param name Device name.
         """
-        self.name = name
         self.updateGuards = []
 
     def addPresenceGuard(self, presenceIdentifier, valuesDescription):
@@ -91,13 +89,12 @@ class DeviceGuard:
         """!
         New message was received.
         """
-        errors = []
         for updateGuard in self.updateGuards:
             if updateGuard.isUpdateRelevant(dataIdentifier):
                 isOK, message = updateGuard.getUpdateCheck(dataIdentifier, data)
                 if not isOK:
-                    errors.append(message)
-        return ReportResult(self.name, errors)
+                    return (isOK, message)
+        return (True, None)
 
     def onPeriodic(self):
         """!

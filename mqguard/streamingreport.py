@@ -34,8 +34,8 @@ class StreamingReporter(BaseReporter):
         self.outputFormatter = outputFormatter
         self.devices = []
 
-    def addDevice(self, device):
-        self.devices.append(device)
+    def addDevice(self, device, guard):
+        self.devices.append((device, guard))
 
 class SocketReporter(StreamingReporter):
     """!
@@ -61,7 +61,7 @@ class SocketReporter(StreamingReporter):
             self.running = True
             while self.running:
                 client, address = self.server.accept()
-                session = SocketReporterSession(self, client, address)
+                session = SocketReporterSession(self, self.outputFormatter, client, address)
                 self.sessions.add(session)
                 threading.Thread(target = session).start()
         finally:
@@ -79,41 +79,48 @@ class SocketReporter(StreamingReporter):
 
     def reportStatus(self, event):
         for session in self.sessions:
-            for message in event.reasons:
-                session.newMessage(message)
+            session.newEvent(event)
 
 class SocketReporterSession:
     """!
     Single SocketReporter client session.
     """
 
-    def __init__(self, sessionManager, client, address):
+    def __init__(self, sessionManager, formatter, client, address):
         self.sessionManager = sessionManager
+        self.formatter = formatter
         self.client = client
         self.address = address
-        self.messageQueue = queue.Queue()
+        self.eventQueue = queue.Queue()
         self.running = False
 
     def __call__(self):
         self.running = True
+        toSend = "{}\n".format(self.formatter.getInitialData())
+        self.client.send(toSend.encode("utf-8"))
         while self.running:
-            message = self.messageQueue.get()
-            if message is not None:
-                toSend = "{}\n".format(message)
+            event = self.eventQueue.get()
+            if event is not None:
+                toSend = "{}\n".format(self.formatter.formatUpdate(event))
                 self.client.send(toSend.encode("utf-8"))
         self.client.close()
         self.sessionManager.sessionEnd(self)
 
+    def getInitialData(self):
+        """!
+        Get initial data.
+        """
+
     def stop(self):
         self.running = False
         # Put None into message queue to wake up consumer thread.
-        self.messageQueue.put(None)
+        self.eventQueue.put(None)
 
     def isRunning(self):
         return self.running
 
-    def newMessage(self, message):
-        self.messageQueue.put(message)
+    def newEvent(self, event):
+        self.eventQueue.put(event)
 
 class WebsocketReporter(StreamingReporter):
     """!
