@@ -77,6 +77,7 @@ class System:
         Get enabled reporters.
         """
         for reporterName, reporterType, reporter in cls.configCache.reporters:
+            reporter.injectSystemClass(cls)
             yield reporter
 
 class DataIdentifierFactory:

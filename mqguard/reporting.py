@@ -179,6 +179,11 @@ class BaseReporter:
         """
         return self.running
 
+    def injectSystemClass(self, systemClass):
+        """!
+        Oppotunity for reporter to get system reference.
+        """
+
 class LogReporter(BaseReporter):
     """!
     Plain text logs.

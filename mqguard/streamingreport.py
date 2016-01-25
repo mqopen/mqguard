@@ -44,15 +44,13 @@ class StreamingReporter(BaseReporter):
         device, isOK, reason = event
         guard, failureSupervisor = self.devices[device]
         failureSupervisor.update(isOK, reason)
+        self.updateSessions(reason)
 
-        for device, guard, failureSupervisor in self.devices:
-            failureSupervisor.update(event)
-            reasons = failureSupervisor.getFailureReasons()
-            self.updateReasons(reasons)
+    def updateSessions(self, reason):
+        pass
 
-    def updateReasons(self, reasons):
-        """!
-        """
+    def injectSystemClass(self, systemClass):
+        self.outputFormatter.injectSystemClass(systemClass)
 
 class SocketReporter(StreamingReporter):
     """!
@@ -94,9 +92,9 @@ class SocketReporter(StreamingReporter):
     def sessionEnd(self, session):
         self.sessions.remove(session)
 
-    def reportStatus(self, event):
+    def updateSessions(self, reason):
         for session in self.sessions:
-            session.newEvent(event)
+            session.update(reason)
 
 class SocketReporterSession:
     """!
@@ -113,12 +111,12 @@ class SocketReporterSession:
 
     def __call__(self):
         self.running = True
-        toSend = "{}\n".format(self.formatter.getInitialData())
+        toSend = "{}\n".format(self.formatter.formatInitialData())
         self.client.send(toSend.encode("utf-8"))
         while self.running:
-            reasons = self.updateQueue.get()
-            if reasons is not None:
-                toSend = "{}\n".format(self.formatter.formatUpdate(reasons))
+            reason = self.updateQueue.get()
+            if reason is not None:
+                toSend = "{}\n".format(self.formatter.formatUpdate(reason))
                 self.client.send(toSend.encode("utf-8"))
         self.client.close()
         self.sessionManager.sessionEnd(self)
@@ -136,8 +134,8 @@ class SocketReporterSession:
     def isRunning(self):
         return self.running
 
-    def update(self, reasons):
-        self.updateQueue.put(reasons)
+    def update(self, reason):
+        self.updateQueue.put(reason)
 
 class WebsocketReporter(StreamingReporter):
     """!
@@ -166,7 +164,7 @@ class DeviceFailureSupervisor:
         self.updateGuards = []
 
     def addUpdateGuard(self, updateGuard):
-        self.updateGuards.append(updateGuard, False)
+        self.updateGuards.append((updateGuard, False))
 
     def update(self, isOK, reason):
         """!

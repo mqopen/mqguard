@@ -14,14 +14,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import json
-from mqguard.system import System
 
 class FormatDataProvider:
     """!
     Interface for providing necessary data for formatters.
     """
 
-    def getBrokers(self):
+    def getBrokerListenDescriptors(self):
         """!
         Get information about connected brokers.
         """
@@ -33,13 +32,23 @@ class FormatDataProvider:
         @return Iterable of tuples (device, guard).
         """
 
+    def injectSystemClass(self, systemClass):
+        """!
+        """
+
 class SystemDataProvider(FormatDataProvider):
     """!
     Provide data from system static object.
     """
 
-    def getBrokers(self):
-        return System.getBrokerListenDescriptors()
+    def injectSystemClass(self, systemClass):
+        self.systemClass = systemClass
+
+    def getBrokerListenDescriptors(self):
+        return self.systemClass.getBrokerListenDescriptors()
+
+    def getDevices(self):
+        return []
 
 class BaseFormatter:
     """!
@@ -48,6 +57,9 @@ class BaseFormatter:
 
     def __init__(self, dataProvider):
         self.dataProvider = dataProvider
+
+    def injectSystemClass(self, systemClass):
+        self.dataProvider.injectSystemClass(systemClass)
 
 class JSONFormatter(BaseFormatter):
     """!
@@ -64,23 +76,38 @@ class JSONFormatter(BaseFormatter):
         data = {"feed": "update", "devices": [], "brokers": []}
         for device in self.dataProvider.getDevices():
             data["devices"].append(device)
-        for broker in self.dataProvider.getBrokers():
-            data["brokers"].append(broker)
+        for broker, subscriptions in self.dataProvider.getBrokerListenDescriptors():
+            data["brokers"].append(self.createBroker(broker, subscriptions))
         return self.encoder.encode(data)
 
-    def formatUpdate(self, event):
+    def formatUpdate(self, reason):
         """!
         """
-        data = {"feed": "update"}
-        data["devices"] = []
-
-        device = {}
-        device["name"] = event.device
-        device["status"] = ["ok", "error"][int(event.isErrorOccured())]
-        device["reason"] = None
-        if event.isErrorOccured():
-            device["reason"] = {}
-            device["reason"]["message"] = event.reason
-
-        data["devices"].append(device)
+        dataIdentifier, alarmClass, message = reason
+        data = {
+            "feed": "update",
+            "devices": [
+                {
+                    "name": None,
+                    "status": None,
+                    "reason": {
+                        "alarm": alarmClass.__name__,
+                        "message": message
+                    }
+                }
+            ]
+        }
         return self.encoder.encode(data)
+
+    def createBroker(self, broker, subscriptions):
+        data = {
+            "name": broker.name,
+            "host": broker.host,
+            "port": broker.port,
+            "public": not broker.isAuthenticationRequired(),
+            "subscriptions": subscriptions,}
+        return data
+
+    def createDevice(self, device):
+        data = {}
+        return data
