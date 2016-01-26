@@ -42,11 +42,12 @@ class StreamingReporter(BaseReporter):
 
     def reportStatus(self, event):
         device, isOK, reason = event
-        guard, failureSupervisor = self.devices[device]
-        failureSupervisor.update(isOK, reason)
-        self.updateSessions(reason)
+        if not isOK:
+        #guard, failureSupervisor = self.devices[device]
+        #failureSupervisor.update(isOK, reason)
+            self.updateSessions(event)
 
-    def updateSessions(self, reason):
+    def updateSessions(self, event):
         pass
 
     def injectSystemClass(self, systemClass):
@@ -92,9 +93,9 @@ class SocketReporter(StreamingReporter):
     def sessionEnd(self, session):
         self.sessions.remove(session)
 
-    def updateSessions(self, reason):
+    def updateSessions(self, event):
         for session in self.sessions:
-            session.update(reason)
+            session.update(event)
 
 class SocketReporterSession:
     """!
@@ -106,7 +107,7 @@ class SocketReporterSession:
         self.formatter = formatter
         self.client = client
         self.address = address
-        self.updateQueue = queue.Queue()
+        self.eventQueue = queue.Queue()
         self.running = False
 
     def __call__(self):
@@ -114,9 +115,9 @@ class SocketReporterSession:
         toSend = "{}\n".format(self.formatter.formatInitialData())
         self.client.send(toSend.encode("utf-8"))
         while self.running:
-            reason = self.updateQueue.get()
-            if reason is not None:
-                toSend = "{}\n".format(self.formatter.formatUpdate(reason))
+            event = self.eventQueue.get()
+            if event is not None:
+                toSend = "{}\n".format(self.formatter.formatUpdate(event))
                 self.client.send(toSend.encode("utf-8"))
         self.client.close()
         self.sessionManager.sessionEnd(self)
@@ -129,13 +130,13 @@ class SocketReporterSession:
     def stop(self):
         self.running = False
         # Put None into message queue to wake up consumer thread.
-        self.updateQueue.put(None)
+        self.eventQueue.put(None)
 
     def isRunning(self):
         return self.running
 
-    def update(self, reason):
-        self.updateQueue.put(reason)
+    def update(self, event):
+        self.eventQueue.put(event)
 
 class WebsocketReporter(StreamingReporter):
     """!

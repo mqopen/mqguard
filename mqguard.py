@@ -44,6 +44,9 @@ def main():
     # Start receiving threads.
     brokerThreadManager.start()
 
+    # Notify device registry to start.
+    deviceRegistry.start()
+
     exitLock = threading.Semaphore(value = 0)
 
     try:

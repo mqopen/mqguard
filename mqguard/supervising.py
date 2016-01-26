@@ -17,6 +17,9 @@
 Supervising at endividual MQTT endpoints.
 """
 
+import threading
+import datetime
+
 from mqreceive.data import DataIdentifier
 from mqguard.alarms import AlarmType
 
@@ -27,7 +30,7 @@ class DeviceRegistry:
 
     def __init__(self, reportManager):
         self.reportManager = reportManager
-        self.periodicChecker = PeriodicChecker(self)
+        self.periodicChecker = PeriodicChecker.secondCheck(self, 1)
         self.guardedDevices = []
 
     def addGuardedDevice(self, device, guard):
@@ -41,18 +44,46 @@ class DeviceRegistry:
 
     def onPeriodicCheck(self):
         for device, guard in self.guardedDevices:
-            guard.onPeriodic()
+            isOK, reason = guard.onPeriodic()
+            self.reportManager.reportStatus((device, isOK, reason))
+
+    def start(self):
+        """!
+        """
+        threading.Thread(target = self.periodicChecker).start()
+
+    def stop(self):
+        """!
+        """
+        self.periodicChecker.stop()
 
 class PeriodicChecker:
 
-    # TODO: refactor registry to more meaningful name
-    def __init__(self, registry):
+    def __init__(self, registry, period):
         self.registry = registry
+        self.period = period
+        self.event = threading.Event()
+        self.running = False
+
+    @classmethod
+    def secondCheck(cls, registry, seconds):
+        return cls(registry, datetime.timedelta(seconds = seconds))
 
     def __call__(self):
         """!
         Periodically invoke check logic.
         """
+        self.running = True
+        while self.running:
+            scheduleExpires = not self.event.wait(self.period.total_seconds())
+            if scheduleExpires:
+                self.registry.onPeriodicCheck()
+
+    def stop(self):
+        """!
+        """
+        self.running = False
+        self.event.set()
 
 class DeviceGuard:
     """!
@@ -97,6 +128,11 @@ class DeviceGuard:
         """!
         Periodic device check.
         """
+        for updateGuard in self.updateGuards:
+            isOK, reason = updateGuard.getPeriodicCheck()
+            if not isOK:
+                return (isOK, reason)
+        return (True, None)
 
 class UpdateGuard:
     """!
@@ -145,6 +181,9 @@ class UpdateGuard:
         @return Tuple with check report. If check is OK: (True, None). If error
             is detected: (False, errorMessage).
         """
+        # Notify all periodic alarms.
+        for alarm in self.periodicAlarms:
+            alarm.notifyMessage(dataIdentifier, payload)
         for alarm in self.messageAlarms:
             isOK, message = alarm.checkMessage(dataIdentifier, payload)
             if not isOK:
@@ -159,9 +198,9 @@ class UpdateGuard:
             is detected: (False, errorMessage).
         """
         for alarm in self.periodicAlarms:
-            result, message = alarm.checkPeriodic()
-            if result is False:
-                return (False, message)
+            isOK, message = alarm.checkPeriodic()
+            if not isOK:
+                return (isOK, (self.dataIdentifier, alarm.__class__, message))
         return (True, None)
 
     def isUpdateRelevant(self, updateDataIdentifier):

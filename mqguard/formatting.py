@@ -80,23 +80,19 @@ class JSONFormatter(BaseFormatter):
             data["brokers"].append(self.createBroker(broker, subscriptions))
         return self.encoder.encode(data)
 
-    def formatUpdate(self, reason):
+    def formatUpdate(self, event):
         """!
         """
+        device, isOK, reason = event
         dataIdentifier, alarmClass, message = reason
         data = {
             "feed": "update",
-            "devices": [
-                {
-                    "name": None,
-                    "status": None,
-                    "reason": {
-                        "alarm": alarmClass.__name__,
-                        "message": message
-                    }
-                }
-            ]
-        }
+            "devices": [{
+                "name": device,
+                "status": ["ok", "error"][int(isOK)],
+                "reason": {
+                    "alarm": alarmClass.__name__,
+                    "message": message}}]}
         return self.encoder.encode(data)
 
     def createBroker(self, broker, subscriptions):

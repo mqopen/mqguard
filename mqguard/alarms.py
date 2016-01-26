@@ -18,6 +18,7 @@ Module with update alarms.
 """
 
 from enum import Enum
+import datetime
 
 class AlarmType(Enum):
     messageDriven = 1
@@ -76,15 +77,19 @@ class BaseAlarm:
 
 class TimedAlarm(BaseAlarm):
     """!
-    Time related alarm.
+    Time related alarm. Base class.
     """
 
     ## @var period
-    # Time period
+    # Time period.
 
     def __init__(self, alarmType, alarmPriority, period):
         BaseAlarm.__init__(self, alarmType, alarmPriority)
         self.period = period
+        self.lastMessageTime = None
+
+    def isLastTimeKnown(self):
+        return self.lastMessageTime is not None
 
 class FloodingAlarm(TimedAlarm):
     """!
@@ -94,6 +99,14 @@ class FloodingAlarm(TimedAlarm):
     def __init__(self, period):
         TimedAlarm.__init__(self, AlarmType.messageDriven, AlarmPriority.other, period)
 
+    @classmethod
+    def fromSeconds(cls, seconds):
+        return cls(datetime.timedelta(seconds = seconds))
+
+    @classmethod
+    def fromMiliseconds(cls, ms):
+        return cls(datetime.timedelta(milliseconds = ms))
+
 class TimeoutAlarm(TimedAlarm):
     """!
     Check timeouting.
@@ -101,6 +114,28 @@ class TimeoutAlarm(TimedAlarm):
 
     def __init__(self, period):
         TimedAlarm.__init__(self, AlarmType.periodic, AlarmPriority.other, period)
+
+    @classmethod
+    def fromSeconds(cls, seconds):
+        return cls(datetime.timedelta(seconds = seconds))
+
+    def notifyMessage(self):
+        self.updateMessageTime()
+
+    def checkPeriodic(self):
+        if self.isLastTimeKnown():
+            currentTime = datetime.datetime.now()
+            delta = currentTime - self.lastMessageTime
+            if delta > self.period:
+                return (False, "Update timeouted: {} seconds".format(delta.total_seconds()))
+        else:
+            # First message is still not received. Update its timestamp. It will trigger
+            # alarm in case that it never be received.
+            self.updateMessageTime()
+        return (True, None)
+
+    def updateMessageTime(self):
+        self.lastMessageTime = datetime.datetime.now()
 
 class RangeAlarm(BaseAlarm):
     """!

@@ -231,6 +231,8 @@ class ProgramConfig:
         alarmsBuilder = AlarmBuilder()
         alarmsBuilder.add(self.getDataTypeAlarm(updateGuardSection))
         alarmsBuilder.add(self.getRangeAlarm(updateGuardSection))
+        alarmsBuilder.add(self.getPeriodMinAlarm(updateGuardSection))
+        alarmsBuilder.add(self.getPeriodMaxAlarm(updateGuardSection))
         return alarmsBuilder.getAlarms()
 
     def getDataTypeAlarm(self, updateGuardSection):
@@ -267,6 +269,34 @@ class ProgramConfig:
             return RangeAlarm.lowerLimit(minRange)
         elif hasMaxRange:
             return RangeAlarm.upperLimit(maxRange)
+        else:
+            return None
+
+    def getPeriodMinAlarm(self, updateGuardSection):
+        periodMinOption = "PeriodMin"
+        if self.parser.has_option(updateGuardSection, periodMinOption):
+            try:
+                periodMin = self.parser.getint(updateGuardSection, periodMinOption)
+                return FloodingAlarm.fromSeconds(periodMin)
+            except ValueError as ex:
+                raise ConfigException("Section {}: option {} can't be interpreted as number ({})".format(
+                        updateGuardSection,
+                        periodMinOption,
+                        self.parser.get(updateGuardSection, periodMinOption)))
+        else:
+            return None
+
+    def getPeriodMaxAlarm(self, updateGuardSection):
+        periodMaxOption = "PeriodMax"
+        if self.parser.has_option(updateGuardSection, periodMaxOption):
+            try:
+                periodMax = self.parser.getint(updateGuardSection, periodMaxOption)
+                return TimeoutAlarm.fromSeconds(periodMax)
+            except ValueError as ex:
+                raise ConfigException("Section {}: option {} can't be interpreted as number ({})".format(
+                        updateGuardSection,
+                        periodMaxOption,
+                        self.parser.get(updateGuardSection, periodMaxOption)))
         else:
             return None
 
