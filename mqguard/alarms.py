@@ -91,6 +91,9 @@ class TimedAlarm(BaseAlarm):
     def isLastTimeKnown(self):
         return self.lastMessageTime is not None
 
+    def updateMessageTime(self):
+        self.lastMessageTime = datetime.datetime.now()
+
 class FloodingAlarm(TimedAlarm):
     """!
     Check too many updates in short time period.
@@ -106,6 +109,17 @@ class FloodingAlarm(TimedAlarm):
     @classmethod
     def fromMiliseconds(cls, ms):
         return cls(datetime.timedelta(milliseconds = ms))
+
+    def checkMessage(self, dataIdentifier, data):
+        if self.isLastTimeKnown():
+            currentTime = datetime.datetime.now()
+            delta = currentTime - self.lastMessageTime
+            self.updateMessageTime()
+            if delta < self.period:
+                return (False, "Message flooding, message received after {} seconds".format(delta.total_seconds()))
+        else:
+            self.updateMessageTime()
+        return (True, None)
 
 class TimeoutAlarm(TimedAlarm):
     """!
@@ -133,9 +147,6 @@ class TimeoutAlarm(TimedAlarm):
             # alarm in case that it never be received.
             self.updateMessageTime()
         return (True, None)
-
-    def updateMessageTime(self):
-        self.lastMessageTime = datetime.datetime.now()
 
 class RangeAlarm(BaseAlarm):
     """!

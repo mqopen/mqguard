@@ -40,12 +40,14 @@ class DeviceRegistry:
         dataIdentifier = DataIdentifier(broker, topic)
         for device, guard in self.guardedDevices:
             isOK, reason = guard.messageReceived(dataIdentifier, data)
-            self.reportManager.reportStatus((device, isOK, reason))
+            event = (device, isOK, reason)
+            self.reportManager.reportStatus(event)
 
-    def onPeriodicCheck(self):
+    def onPeriodic(self):
         for device, guard in self.guardedDevices:
             isOK, reason = guard.onPeriodic()
-            self.reportManager.reportStatus((device, isOK, reason))
+            event = (device, isOK, reason)
+            self.reportManager.reportStatus(event)
 
     def start(self):
         """!
@@ -58,6 +60,9 @@ class DeviceRegistry:
         self.periodicChecker.stop()
 
 class PeriodicChecker:
+    """!
+    Separate tread which periodicall invokes onPeriodic() method of DeviceRegistry object.
+    """
 
     def __init__(self, registry, period):
         self.registry = registry
@@ -77,7 +82,7 @@ class PeriodicChecker:
         while self.running:
             scheduleExpires = not self.event.wait(self.period.total_seconds())
             if scheduleExpires:
-                self.registry.onPeriodicCheck()
+                self.registry.onPeriodic()
 
     def stop(self):
         """!
