@@ -18,6 +18,7 @@ import threading
 import queue
 
 from mqguard.reporting import BaseReporter
+from mqguard.fail import DeviceFailureSupervisor
 
 class StreamingReporter(BaseReporter):
     """!
@@ -32,23 +33,28 @@ class StreamingReporter(BaseReporter):
         """
         BaseReporter.__init__(self, synchronizer)
         self.outputFormatter = outputFormatter
-        self.devices = {}
+        self.supervisors = {}
 
     def addDevice(self, device, guard):
         failureSupervisor = DeviceFailureSupervisor(device)
         for updateGuard in guard.updateGuards:
-            failureSupervisor.addUpdateGuard(updateGuard)
-        self.devices[device] = (guard, failureSupervisor)
+            failureSupervisor.supervise(updateGuard.dataIdentifier, updateGuard.getAlarmClasses())
+        self.supervisors[device] = failureSupervisor
 
     def reportStatus(self, event):
-        device, isOK, reason = event
-        if not isOK:
-        #guard, failureSupervisor = self.devices[device]
-        #failureSupervisor.update(isOK, reason)
-            self.updateSessions(event)
+        device, dataIdentifier, alarmActive, reason = event
+        #dataIdentifier, alarmClass, message = reason
+        supervisor = self.supervisors[device]
+        supervisor.update(dataIdentifier, alarmClass, not isOK, message)
+        if supervisor.hasChange():
+            deviceReport = self.supervisor.getChanges()
+            self.updateSessions(deviceReport)
+            supervisor.resetChanges()
 
-    def updateSessions(self, event):
-        pass
+    def updateSessions(self, deviceReport):
+        """!
+        Override in sub-class.
+        """
 
     def injectSystemClass(self, systemClass):
         self.outputFormatter.injectSystemClass(systemClass)
@@ -93,9 +99,9 @@ class SocketReporter(StreamingReporter):
     def sessionEnd(self, session):
         self.sessions.remove(session)
 
-    def updateSessions(self, event):
+    def updateSessions(self, deviceReport):
         for session in self.sessions:
-            session.update(event)
+            session.update(deviceReport)
 
 class SocketReporterSession:
     """!
@@ -115,9 +121,9 @@ class SocketReporterSession:
         toSend = "{}\n".format(self.formatter.formatInitialData())
         self.client.send(toSend.encode("utf-8"))
         while self.running:
-            event = self.eventQueue.get()
-            if event is not None:
-                toSend = "{}\n".format(self.formatter.formatUpdate(event))
+            deviceReport = self.eventQueue.get()
+            if deviceReport is not None:
+                toSend = "{}\n".format(self.formatter.formatDeviceReport(deviceReport))
                 self.client.send(toSend.encode("utf-8"))
         self.client.close()
         self.sessionManager.sessionEnd(self)
@@ -135,8 +141,8 @@ class SocketReporterSession:
     def isRunning(self):
         return self.running
 
-    def update(self, event):
-        self.eventQueue.put(event)
+    def update(self, deviceReport):
+        self.eventQueue.put(deviceReport)
 
 class WebsocketReporter(StreamingReporter):
     """!
@@ -150,30 +156,3 @@ class WebsocketReporter(StreamingReporter):
         @param outputFormatter Formatter object for final report result
         """
         StreamingReporter.__init__(self, synchronizer, outputFormatter)
-
-class DeviceFailureSupervisor:
-    """!
-    Keep track of all device MQTT topic updates and their falures.
-    """
-
-    ## @var updateGuards
-    # Iterable of tuples. First element is update guard object. Second is boolean flag
-    # to keep track if that guard is in error.
-
-    def __init__(self, device):
-        self.device = device
-        self.updateGuards = []
-
-    def addUpdateGuard(self, updateGuard):
-        self.updateGuards.append((updateGuard, False))
-
-    def update(self, isOK, reason):
-        """!
-        Update supervisor.
-        """
-    def isDeviceOK(self):
-        """!
-        Check if device has any errors.
-
-        @return True if device has no registerred failure, False otherwise.
-        """

@@ -39,14 +39,14 @@ class DeviceRegistry:
     def onMessage(self, broker, topic, data):
         dataIdentifier = DataIdentifier(broker, topic)
         for device, guard in self.guardedDevices:
-            isOK, reason = guard.messageReceived(dataIdentifier, data)
-            event = (device, isOK, reason)
+            di, alarmActive, reason = guard.messageReceived(dataIdentifier, data)
+            event = (device, dataIdentifier, alarmActive, reason)
             self.reportManager.reportStatus(event)
 
     def onPeriodic(self):
         for device, guard in self.guardedDevices:
-            isOK, reason = guard.onPeriodic()
-            event = (device, isOK, reason)
+            di, alarmActive, reason = guard.onPeriodic()
+            event = (device, di, alarmActive, reason)
             self.reportManager.reportStatus(event)
 
     def start(self):
@@ -124,20 +124,20 @@ class DeviceGuard:
         """
         for updateGuard in self.updateGuards:
             if updateGuard.isUpdateRelevant(dataIdentifier):
-                isOK, reason = updateGuard.getUpdateCheck(dataIdentifier, data)
-                if not isOK:
-                    return (isOK, reason)
-        return (True, None)
+                di, active, reason = updateGuard.getUpdateCheck(dataIdentifier, data)
+                if active:
+                    return (di, active, reason)
+        return (di, False, None)
 
     def onPeriodic(self):
         """!
         Periodic device check.
         """
         for updateGuard in self.updateGuards:
-            isOK, reason = updateGuard.getPeriodicCheck()
-            if not isOK:
-                return (isOK, reason)
-        return (True, None)
+            di, active, reason = updateGuard.getPeriodicCheck()
+            if active:
+                return (di, active, reason)
+        return (None, False, None)
 
 class UpdateGuard:
     """!
@@ -190,10 +190,10 @@ class UpdateGuard:
         for alarm in self.periodicAlarms:
             alarm.notifyMessage(dataIdentifier, payload)
         for alarm in self.messageAlarms:
-            isOK, message = alarm.checkMessage(dataIdentifier, payload)
-            if not isOK:
-                return (isOK, (self.dataIdentifier, alarm.__class__, message))
-        return (True, None)
+            active, message = alarm.checkMessage(dataIdentifier, payload)
+            if active:
+                return (self.dataIdentifier, active, (alarm.__class__, message))
+        return (self.dataIdentifier, False, None)
 
     def getPeriodicCheck(self):
         """!
@@ -203,10 +203,10 @@ class UpdateGuard:
             is detected: (False, errorMessage).
         """
         for alarm in self.periodicAlarms:
-            isOK, message = alarm.checkPeriodic()
-            if not isOK:
-                return (isOK, (self.dataIdentifier, alarm.__class__, message))
-        return (True, None)
+            active, message = alarm.checkPeriodic()
+            if active:
+                return (self.dataIdentifier, active, (alarm.__class__, message))
+        return (self.dataIdentifier, False, None)
 
     def isUpdateRelevant(self, updateDataIdentifier):
         """!
@@ -215,3 +215,11 @@ class UpdateGuard:
         @return True if relevant, False otherwise.
         """
         return updateDataIdentifier == self.dataIdentifier
+
+    def getAlarmClasses(self):
+        alarmClasses = []
+        for alarm in self.messageAlarms:
+            alarmClasses.append(alarm.__class__)
+        for alarm in self.periodicAlarms:
+            alarmClasses.append(alarm.__class__)
+        return alarmClasses

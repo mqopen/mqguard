@@ -20,6 +20,9 @@ Module with update alarms.
 from enum import Enum
 import datetime
 
+__all__ = ['FloodingAlarm', 'TimeoutAlarm', 'RangeAlarm', 'ErrorCodesAlarm', 'DataTypeAlarm',
+            'PresenceAlarm']
+
 class AlarmType(Enum):
     messageDriven = 1
     periodic = 2
@@ -56,7 +59,7 @@ class BaseAlarm:
         try:
             return self.checkDecodedMessage(dataIdentifier, data.decode("utf-8"))
         except UnicodeError as ex:
-            return (False, "Data decoding error")
+            return (True, "Data decoding error")
 
     def notifyMessage(self, dataIdentifier, data):
         """!
@@ -67,13 +70,13 @@ class BaseAlarm:
         """!
         Periodic check.
         """
-        return (False, "Not implemented")
+        return (True, "Not implemented")
 
     def checkDecodedMessage(self, dataIdentifier, data):
         """!
         Convenient method. Decode message
         """
-        return (False, "Not implemented")
+        return (True, "Not implemented")
 
 class TimedAlarm(BaseAlarm):
     """!
@@ -116,10 +119,10 @@ class FloodingAlarm(TimedAlarm):
             delta = currentTime - self.lastMessageTime
             self.updateMessageTime()
             if delta < self.period:
-                return (False, "Message flooding, message received after {} seconds".format(delta.total_seconds()))
+                return (True, "Message flooding, message received after {} seconds".format(delta.total_seconds()))
         else:
             self.updateMessageTime()
-        return (True, None)
+        return (False, None)
 
 class TimeoutAlarm(TimedAlarm):
     """!
@@ -141,12 +144,12 @@ class TimeoutAlarm(TimedAlarm):
             currentTime = datetime.datetime.now()
             delta = currentTime - self.lastMessageTime
             if delta > self.period:
-                return (False, "Update timeouted: {} seconds".format(delta.total_seconds()))
+                return (True, "Update timeouted: {} seconds".format(delta.total_seconds()))
         else:
             # First message is still not received. Update its timestamp. It will trigger
             # alarm in case that it never be received.
             self.updateMessageTime()
-        return (True, None)
+        return (False, None)
 
 class RangeAlarm(BaseAlarm):
     """!
@@ -174,12 +177,12 @@ class RangeAlarm(BaseAlarm):
         try:
             value = float(data)
             if value < self.lowerLimit:
-                return (False, "Value {} exceeds minimum allowed range ({})".format(value, self.lowerLimit))
+                return (True, "Value {} exceeds minimum allowed range ({})".format(value, self.lowerLimit))
             if value > self.upperLimit:
-                return (False, "Value {} exceeds maximum allowed range ({})".format(value, self.upperLimit))
-            return (True, None)
+                return (True, "Value {} exceeds maximum allowed range ({})".format(value, self.upperLimit))
+            return (False, None)
         except ValueError as ex:
-            return (False, "Can't decode value '{}' as a number".format(data))
+            return (True, "Can't decode value '{}' as a number".format(data))
 
 class PresenceAlarm(BaseAlarm):
     """!
@@ -194,10 +197,10 @@ class PresenceAlarm(BaseAlarm):
     def checkDecodedMessage(self, dataIdentifier, data):
         if (dataIdentifier == self.presenceDataIdentifier):
             if data == self.presenceOnline:
-                return (True, None)
+                return (False, None)
             if data == self.preseceOffline:
-                return (False, "Device is down")
-            return (False, "Unexpected presence message: {}".format(data))
+                return (True, "Device is down")
+            return (True, "Unexpected presence message: {}".format(data))
 
 class ErrorCodesAlarm(BaseAlarm):
     """!
@@ -215,9 +218,9 @@ class ErrorCodesAlarm(BaseAlarm):
 
     def checkDecodedMessage(self, dataIdentifier, data):
         if data in self.errorCodes:
-            return (False, "Error code detected: {}".format(data))
+            return (True, "Error code detected: {}".format(data))
         else:
-            return (True, None)
+            return (False, None)
 
 class DataTypeAlarm(BaseAlarm):
     def __init__(self, dataFilter):

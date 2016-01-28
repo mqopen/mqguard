@@ -95,6 +95,23 @@ class JSONFormatter(BaseFormatter):
                     "message": message}}]}
         return self.encoder.encode(data)
 
+    def formatDeviceReport(self, deviceReport):
+        """!
+        """
+        device, guardsMapping = deviceReport
+        data = {
+            "feed": "update",
+            "devices": [{
+                "name": device,
+                "status": ["ok", "error"][int(len(guardsMapping) > 0)],
+                "reasons": [
+                    self.createDeviceReportReason(di, alarmMapping) for di, alarmMapping in guardsMapping.items()]}]}
+        return self.encoder.encode(data)
+
+    def createDeviceReportReason(self, dataIdentifier, alarmMapping):
+        reason = {dataIdentifier: alarmMapping}
+        return reason
+
     def createBroker(self, broker, subscriptions):
         data = {
             "name": broker.name,
