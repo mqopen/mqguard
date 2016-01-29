@@ -92,7 +92,7 @@ class ReportingManager:
         Add broker object.
         """
 
-    def reportStatus(self, event):
+    def report(self, event):
         """!
         Report new event.
 

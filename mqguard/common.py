@@ -17,3 +17,27 @@ class GeographicPosition:
     def __init__(self, latitude, longitude):
         self.latitude = latitude
         self.longitude = longitude
+
+class DeviceReport:
+    """!
+    """
+
+    def hasChanges(self):
+        """!
+        """
+
+    def hasFailures(self):
+        """!
+        """
+
+    def getReport(self):
+        """!
+        """
+
+    def getChanges(self):
+        """!
+        """
+
+    def getFailures(self):
+        """!
+        """

@@ -11,12 +11,12 @@ Contains following fields:
  - `device` - Identification of guarded device.
  - `dataIdentifier` - Instance of `DataIdentifier` class. It describes MQTT broker which
     sends the data and MQTT topic.
- - `alarmActive` - Boolean flag indicating if an alarm was triggered.
- - `reason` - `reason` tuple if `alarmActive` flag is `True`. `None` otherwise.
+ - `alarms` - Iterable of assigned `alarm` tuples.
 
-### `reason` tuple
+### `alarm` tuple
 
  - `alarmClass` - Reference to class of alarm which detected device failure.
+ - `active` - Boolean flag indicating if an alarm was triggered.
  - `message` - Message provided by alarm.
 
 ## Reporting structures for long term reporters.

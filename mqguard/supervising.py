@@ -19,6 +19,7 @@ Supervising at endividual MQTT endpoints.
 
 import threading
 import datetime
+import pprint
 
 from mqreceive.data import DataIdentifier
 from mqguard.alarms import AlarmType
@@ -31,23 +32,50 @@ class DeviceRegistry:
     def __init__(self, reportManager):
         self.reportManager = reportManager
         self.periodicChecker = PeriodicChecker.secondCheck(self, 1)
-        self.guardedDevices = []
+        self.guardedDevices = {}
+        self.alarmStates = {}
+        self.pp = pprint.PrettyPrinter()
 
     def addGuardedDevice(self, device, guard):
-        self.guardedDevices.append((device, guard))
+        self.guardedDevices[device] = guard
+        self.addAlarmTrack(device, guard)
+
+    def addAlarmTrack(self, device, guard):
+        self.alarmStates[device] = {}
+        guardAlarms = guard.getGuardAlarms()
+        for dataIdentifier in guardAlarms:
+            self.alarmStates[device][dataIdentifier] = {}
+            for alarmClass in guardAlarms[dataIdentifier]:
+                self.alarmStates[device][dataIdentifier][alarmClass] = (False, False, None)
 
     def onMessage(self, broker, topic, data):
         dataIdentifier = DataIdentifier(broker, topic)
-        for device, guard in self.guardedDevices:
-            di, alarmActive, reason = guard.messageReceived(dataIdentifier, data)
-            event = (device, dataIdentifier, alarmActive, reason)
-            self.reportManager.reportStatus(event)
+        for device, deviceGuard in self.guardedDevices.items():
+            for di, alarms in deviceGuard.messageReceived(dataIdentifier, data).items():
+                self.alarmStates[device][di]
+            self.makeReport(device)
 
     def onPeriodic(self):
-        for device, guard in self.guardedDevices:
-            di, alarmActive, reason = guard.onPeriodic()
-            event = (device, di, alarmActive, reason)
-            self.reportManager.reportStatus(event)
+        for device, deviceGuard in self.guardedDevices.items():
+            for di, alarms in deviceGuard.onPeriodic():
+                pass
+            self.makeReport(device)
+
+    def makeReport(self, device):
+        #self.reportManager.report(device, self.alarmStates[device])
+        self.pp.pprint(self.alarmStates)
+        for i in range(5):
+            print("")
+
+    def setChange(self):
+        pass
+
+    def clearChanges(self):
+        for device in self.guardedDevices:
+            for dataIdentifier in self.guardedDevices[device]:
+                for alarm in self.guardedDevices[device][dataIdentifier]:
+                    active, changed, message = self.guardedDevices[device][dataIdentifier][alarm]
+                    self.guardedDevices[device][dataIdentifier][alarm] = (active, False, message)
 
     def start(self):
         """!
@@ -59,41 +87,10 @@ class DeviceRegistry:
         """
         self.periodicChecker.stop()
 
-class PeriodicChecker:
-    """!
-    Separate tread which periodicall invokes onPeriodic() method of DeviceRegistry object.
-    """
-
-    def __init__(self, registry, period):
-        self.registry = registry
-        self.period = period
-        self.event = threading.Event()
-        self.running = False
-
-    @classmethod
-    def secondCheck(cls, registry, seconds):
-        return cls(registry, datetime.timedelta(seconds = seconds))
-
-    def __call__(self):
-        """!
-        Periodically invoke check logic.
-        """
-        self.running = True
-        while self.running:
-            scheduleExpires = not self.event.wait(self.period.total_seconds())
-            if scheduleExpires:
-                self.registry.onPeriodic()
-
-    def stop(self):
-        """!
-        """
-        self.running = False
-        self.event.set()
-
 class DeviceGuard:
     """!
     Guarding single device. Device guard groups multimple DataIdentifier objectcs and
-    theie alarms. It also have responsibility for checking presence messages.
+    their alarms. It also have responsibility for checking presence messages.
     """
 
     ## @var updateGuards
@@ -122,22 +119,28 @@ class DeviceGuard:
         """!
         New message was received.
         """
+        results = {}
         for updateGuard in self.updateGuards:
             if updateGuard.isUpdateRelevant(dataIdentifier):
-                di, active, reason = updateGuard.getUpdateCheck(dataIdentifier, data)
-                if active:
-                    return (di, active, reason)
-        return (di, False, None)
+                alarms = updateGuard.getUpdateCheck(dataIdentifier, data)
+                results[dataIdentifier] = alarms
+        return results
 
     def onPeriodic(self):
         """!
         Periodic device check.
         """
+        results = []
         for updateGuard in self.updateGuards:
-            di, active, reason = updateGuard.getPeriodicCheck()
-            if active:
-                return (di, active, reason)
-        return (None, False, None)
+            result = updateGuard.getPeriodicCheck()
+            results.append((updateGuard.dataIdentifier, result))
+        return results
+
+    def getGuardAlarms(self):
+        alarms = {}
+        for updateGuard in self.updateGuards:
+            alarms[updateGuard.dataIdentifier] = updateGuard.getAlarmClasses()
+        return alarms
 
 class UpdateGuard:
     """!
@@ -186,14 +189,16 @@ class UpdateGuard:
         @return Tuple with check report. If check is OK: (True, None). If error
             is detected: (False, errorMessage).
         """
+        alarms = []
         # Notify all periodic alarms.
         for alarm in self.periodicAlarms:
-            alarm.notifyMessage(dataIdentifier, payload)
+            deactivated = alarm.notifyMessage(dataIdentifier, payload)
+            if deactivated:
+                alarms.append((False, None))
         for alarm in self.messageAlarms:
-            active, message = alarm.checkMessage(dataIdentifier, payload)
-            if active:
-                return (self.dataIdentifier, active, (alarm.__class__, message))
-        return (self.dataIdentifier, False, None)
+            result = alarm.checkMessage(dataIdentifier, payload)
+            alarms.append(result)
+        return alarms
 
     def getPeriodicCheck(self):
         """!
@@ -202,11 +207,11 @@ class UpdateGuard:
         @return Tuple with check report. If check is OK: (True, None). If error
             is detected: (False, errorMessage).
         """
+        alarms = []
         for alarm in self.periodicAlarms:
-            active, message = alarm.checkPeriodic()
-            if active:
-                return (self.dataIdentifier, active, (alarm.__class__, message))
-        return (self.dataIdentifier, False, None)
+            result = alarm.checkPeriodic()
+            alarms.append(result)
+        return alarms
 
     def isUpdateRelevant(self, updateDataIdentifier):
         """!
@@ -223,3 +228,34 @@ class UpdateGuard:
         for alarm in self.periodicAlarms:
             alarmClasses.append(alarm.__class__)
         return alarmClasses
+
+class PeriodicChecker:
+    """!
+    Separate tread which periodicall invokes onPeriodic() method of DeviceRegistry object.
+    """
+
+    def __init__(self, registry, period):
+        self.registry = registry
+        self.period = period
+        self.event = threading.Event()
+        self.running = False
+
+    @classmethod
+    def secondCheck(cls, registry, seconds):
+        return cls(registry, datetime.timedelta(seconds = seconds))
+
+    def __call__(self):
+        """!
+        Periodically invoke check logic.
+        """
+        self.running = True
+        while self.running:
+            scheduleExpires = not self.event.wait(self.period.total_seconds())
+            if scheduleExpires:
+                self.registry.onPeriodic()
+
+    def stop(self):
+        """!
+        """
+        self.running = False
+        self.event.set()
