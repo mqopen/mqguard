@@ -19,10 +19,11 @@ Supervising at endividual MQTT endpoints.
 
 import threading
 import datetime
-import pprint
+import copy
 
 from mqreceive.data import DataIdentifier
 from mqguard.alarms import AlarmType
+from mqguard.common import DeviceReport
 
 class DeviceRegistry:
     """!
@@ -34,7 +35,6 @@ class DeviceRegistry:
         self.periodicChecker = PeriodicChecker.secondCheck(self, 1)
         self.guardedDevices = {}
         self.alarmStates = {}
-        self.pp = pprint.PrettyPrinter()
 
     def addGuardedDevice(self, device, guard):
         self.guardedDevices[device] = guard
@@ -46,13 +46,17 @@ class DeviceRegistry:
         for dataIdentifier in guardAlarms:
             self.alarmStates[device][dataIdentifier] = {}
             for alarmClass in guardAlarms[dataIdentifier]:
-                self.alarmStates[device][dataIdentifier][alarmClass] = (False, False, None)
+                active = False
+                changed = False
+                updated = False
+                message = None
+                self.alarmStates[device][dataIdentifier][alarmClass] = (active, changed, updated, message)
 
     def onMessage(self, broker, topic, data):
         dataIdentifier = DataIdentifier(broker, topic)
         for device, deviceGuard in self.guardedDevices.items():
             for di, alarms in deviceGuard.messageReceived(dataIdentifier, data).items():
-                self.alarmStates[device][di]
+                self.setChanges(device, di, alarms)
             self.makeReport(device)
 
     def onPeriodic(self):
@@ -62,20 +66,26 @@ class DeviceRegistry:
             self.makeReport(device)
 
     def makeReport(self, device):
-        #self.reportManager.report(device, self.alarmStates[device])
-        self.pp.pprint(self.alarmStates)
-        for i in range(5):
-            print("")
+        report = DeviceReport(copy.deepcopy(self.alarmStates[device]))
+        report.makePrettyPrint()
 
-    def setChange(self):
-        pass
+    def setChanges(self, device, dataIdentifier, alarms):
+        for alarm in alarms:
+            active, message = alarms[alarm]
+            wasActive, changed, updated, previousMessage = self.alarmStates[device][dataIdentifier][alarm]
+            _active = active
+            _changed = False
+            if active != wasActive:
+                _changed = True
+            _updated = True
+            self.alarmStates[device][dataIdentifier][alarm] = (_active, _changed, _updated, message)
 
     def clearChanges(self):
         for device in self.guardedDevices:
             for dataIdentifier in self.guardedDevices[device]:
                 for alarm in self.guardedDevices[device][dataIdentifier]:
-                    active, changed, message = self.guardedDevices[device][dataIdentifier][alarm]
-                    self.guardedDevices[device][dataIdentifier][alarm] = (active, False, message)
+                    active, changed, updated, message = self.guardedDevices[device][dataIdentifier][alarm]
+                    self.guardedDevices[device][dataIdentifier][alarm] = (active, False, False, message)
 
     def start(self):
         """!
@@ -118,6 +128,8 @@ class DeviceGuard:
     def messageReceived(self, dataIdentifier, data):
         """!
         New message was received.
+
+        @return Mapping of DataIdentifier: alarmStates.
         """
         results = {}
         for updateGuard in self.updateGuards:
@@ -189,15 +201,15 @@ class UpdateGuard:
         @return Tuple with check report. If check is OK: (True, None). If error
             is detected: (False, errorMessage).
         """
-        alarms = []
+        alarms = {}
         # Notify all periodic alarms.
         for alarm in self.periodicAlarms:
             deactivated = alarm.notifyMessage(dataIdentifier, payload)
             if deactivated:
-                alarms.append((False, None))
+                alarms[alarm.__class__] = (False, None)
         for alarm in self.messageAlarms:
             result = alarm.checkMessage(dataIdentifier, payload)
-            alarms.append(result)
+            alarms[alarm.__class__] = result
         return alarms
 
     def getPeriodicCheck(self):
@@ -207,10 +219,10 @@ class UpdateGuard:
         @return Tuple with check report. If check is OK: (True, None). If error
             is detected: (False, errorMessage).
         """
-        alarms = []
+        alarms = {}
         for alarm in self.periodicAlarms:
             result = alarm.checkPeriodic()
-            alarms.append(result)
+            alarms[alarm] = result
         return alarms
 
     def isUpdateRelevant(self, updateDataIdentifier):

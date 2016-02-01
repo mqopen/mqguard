@@ -13,6 +13,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import pprint
+
 class GeographicPosition:
     def __init__(self, latitude, longitude):
         self.latitude = latitude
@@ -22,7 +24,19 @@ class DeviceReport:
     """!
     """
 
+    def __init__(self, alarmStates):
+        self.alarmStates = alarmStates
+        self._hasChanges = False
+        self._hasUpdates = False
+        self._hasFailures = False
+
+        self.pp = pprint.PrettyPrinter()
+
     def hasChanges(self):
+        """!
+        """
+
+    def hasUpdates(self):
         """!
         """
 
@@ -33,6 +47,7 @@ class DeviceReport:
     def getReport(self):
         """!
         """
+        return self.alarmStates
 
     def getChanges(self):
         """!
@@ -41,3 +56,7 @@ class DeviceReport:
     def getFailures(self):
         """!
         """
+
+    def makePrettyPrint(self):
+        #self.pp.pprint(self.alarmStates)
+        print(self.alarmStates)
