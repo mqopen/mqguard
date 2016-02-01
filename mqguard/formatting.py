@@ -73,7 +73,7 @@ class JSONFormatter(BaseFormatter):
     def formatInitialData(self):
         """!
         """
-        data = {"feed": "update", "devices": [], "brokers": []}
+        data = {"feed": "init", "devices": [], "brokers": []}
         for device in self.dataProvider.getDevices():
             data["devices"].append(device)
         for broker, subscriptions in self.dataProvider.getBrokerListenDescriptors():
@@ -107,11 +107,13 @@ class JSONFormatter(BaseFormatter):
         return self.encoder.encode(data)
 
     def createReason(self, changes):
-        dataIdentifier, alarm, message = changes
+        dataIdentifier, alarm, report = changes
+        active, changed, updated, message = report
         reason = {
             "guard": "{}:{}".format(dataIdentifier.broker.name, dataIdentifier.topic),
-            "alarm": "{}".format(alarm),
-            "message": message}
+            "alarm": "{}".format(alarm.__name__),
+            "status": ["ok", "error"][int(active)],
+            "message": ["ok", message][int(active)]}
         return reason
 
     def createBroker(self, broker, subscriptions):

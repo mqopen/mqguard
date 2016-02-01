@@ -63,20 +63,32 @@ class DeviceReport:
     def getReport(self):
         """!
         """
-        return self.alarmStates
+        for dataIdentifier in self.alarmStates:
+            for alarm in self.alarmStates[dataIdentifier]:
+                report = self.alarmStates[dataIdentifier][alarm]
+                yield dataIdentifier, alarm, report
 
     def getChanges(self):
         """!
         """
-        for dataIdentifier in self.alarmStates:
-            for alarm in self.alarmStates[dataIdentifier]:
-                active, changed, updated, message = self.alarmStates[dataIdentifier][alarm]
-                if changed:
-                    yield (dataIdentifier, alarm, message)
+        for dataIdentifier, alarm, report in self.getReport():
+            active, changed, updated, message = report
+            if changed:
+                yield dataIdentifier, alarm, report
 
     def getFailures(self):
         """!
         """
+        for dataIdentifier, alarm, report in self.getReport():
+            active, changed, updated, message = report
+            if active:
+                yield dataIdentifier, alarm, report
+
+    def getUpdates(self):
+        for dataIdentifier, alarm, report in self.getReport():
+            active, changed, updated, message = report
+            if updated:
+                yield dataIdentifier, alarm, report
 
     def getSummary(self):
         """!
