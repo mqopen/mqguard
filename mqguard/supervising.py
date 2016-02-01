@@ -66,8 +66,8 @@ class DeviceRegistry:
             self.makeReport(device)
 
     def makeReport(self, device):
-        report = DeviceReport(copy.deepcopy(self.alarmStates[device]))
-        report.makePrettyPrint()
+        report = DeviceReport(device, copy.deepcopy(self.alarmStates[device]))
+        self.reportManager.report(report)
 
     def setChanges(self, device, dataIdentifier, alarms):
         for alarm in alarms:

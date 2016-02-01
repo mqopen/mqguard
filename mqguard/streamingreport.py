@@ -41,7 +41,7 @@ class StreamingReporter(BaseReporter):
             failureSupervisor.supervise(updateGuard.dataIdentifier, updateGuard.getAlarmClasses())
         self.supervisors[device] = failureSupervisor
 
-    def reportStatus(self, event):
+    def report(self, deviceReport):
         device, dataIdentifier, alarmActive, reason = event
         #dataIdentifier, alarmClass, message = reason
         supervisor = self.supervisors[device]

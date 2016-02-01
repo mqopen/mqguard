@@ -92,20 +92,12 @@ class ReportingManager:
         Add broker object.
         """
 
-    def report(self, event):
+    def report(self, deviceReport):
         """!
         Report new event.
-
-        @param event Tuple with following fields: (device, isOK, reason).
-            @li device Device identification.
-            @li isOK Boolean flag indicating if any error occured.
-            @li reason Reason tuple (dataIdentifier, alarmClass, message).
-                @li dataIdentifier DataIdentifier object.
-                @li alarmClass Alarm class.
-                @li message Alarm message.
         """
         for reporter in self.reporters:
-            reporter.reportStatus(event)
+            reporter.report(deviceReport)
 
     def start(self):
         """!
@@ -144,7 +136,7 @@ class BaseReporter:
         @param guard DeviceGuard object.
         """
 
-    def reportStatus(self, event):
+    def report(self, deviceReport):
         """!
         Report new event.
 
@@ -199,7 +191,7 @@ class PrintReporter(BaseReporter):
     Debug reporter.
     """
 
-    def reportStatus(self, result):
+    def report(self, deviceReport):
         print("registerred {} errors:".format(len(result.reasons)))
         for reason in result.reasons:
             print("{}{}".format(" " * 2, reason))

@@ -98,19 +98,13 @@ class JSONFormatter(BaseFormatter):
     def formatDeviceReport(self, deviceReport):
         """!
         """
-        device, guardsMapping = deviceReport
         data = {
             "feed": "update",
             "devices": [{
-                "name": device,
-                "status": ["ok", "error"][int(len(guardsMapping) > 0)],
-                "reasons": [
-                    self.createDeviceReportReason(di, alarmMapping) for di, alarmMapping in guardsMapping.items()]}]}
+                "name": deviceReport.device,
+                "status": ["ok", "error"][int(deviceReport.hasFailures())],
+                "reasons": []}]}
         return self.encoder.encode(data)
-
-    def createDeviceReportReason(self, dataIdentifier, alarmMapping):
-        reason = {dataIdentifier: alarmMapping}
-        return reason
 
     def createBroker(self, broker, subscriptions):
         data = {
@@ -119,8 +113,4 @@ class JSONFormatter(BaseFormatter):
             "port": broker.port,
             "public": not broker.isAuthenticationRequired(),
             "subscriptions": subscriptions,}
-        return data
-
-    def createDevice(self, device):
-        data = {}
         return data

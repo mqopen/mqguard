@@ -24,25 +24,41 @@ class DeviceReport:
     """!
     """
 
-    def __init__(self, alarmStates):
+    def __init__(self, device, alarmStates):
+        self.device = device
         self.alarmStates = alarmStates
-        self._hasChanges = False
-        self._hasUpdates = False
-        self._hasFailures = False
+        self._hasChanges, self._hasUpdates, self._hasFailures = self.createFlags()
 
-        self.pp = pprint.PrettyPrinter()
+    def createFlags(self):
+        hasChanges = False
+        hasUpdates = False
+        hasFailures = False
+        for alarmMapping in self.alarmStates.values():
+            for active, changed, updated, message in alarmMapping.values():
+                if active:
+                    hasFailures = True
+                if changed:
+                    hasChanges = True
+                if updated:
+                    hasUpdates = True
+                if hasFailures and hasUpdates and hasChanges:
+                    return hasChanges, hasUpdates, hasFailures
+        return hasChanges, hasUpdates, hasFailures
 
     def hasChanges(self):
         """!
         """
+        return self._hasChanges
 
     def hasUpdates(self):
         """!
         """
+        return self._hasUpdates
 
     def hasFailures(self):
         """!
         """
+        return self._hasFailures
 
     def getReport(self):
         """!
@@ -57,6 +73,12 @@ class DeviceReport:
         """!
         """
 
-    def makePrettyPrint(self):
-        #self.pp.pprint(self.alarmStates)
-        print(self.alarmStates)
+    def getSummary(self):
+        """!
+        Get summary string.
+        """
+        return "{} - failures: {}, changes: {}, updates: {}".format(
+                self.device,
+                self.hasFailures(),
+                self.hasChanges(),
+                self.hasUpdates())
