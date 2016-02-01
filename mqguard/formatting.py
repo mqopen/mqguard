@@ -103,8 +103,16 @@ class JSONFormatter(BaseFormatter):
             "devices": [{
                 "name": deviceReport.device,
                 "status": ["ok", "error"][int(deviceReport.hasFailures())],
-                "reasons": []}]}
+                "reasons": [self.createReason(changes) for changes in deviceReport.getChanges()]}]}
         return self.encoder.encode(data)
+
+    def createReason(self, changes):
+        dataIdentifier, alarm, message = changes
+        reason = {
+            "guard": "{}:{}".format(dataIdentifier.broker.name, dataIdentifier.topic),
+            "alarm": "{}".format(alarm),
+            "message": message}
+        return reason
 
     def createBroker(self, broker, subscriptions):
         data = {

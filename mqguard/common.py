@@ -68,6 +68,11 @@ class DeviceReport:
     def getChanges(self):
         """!
         """
+        for dataIdentifier in self.alarmStates:
+            for alarm in self.alarmStates[dataIdentifier]:
+                active, changed, updated, message = self.alarmStates[dataIdentifier][alarm]
+                if changed:
+                    yield (dataIdentifier, alarm, message)
 
     def getFailures(self):
         """!

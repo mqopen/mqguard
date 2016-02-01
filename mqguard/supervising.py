@@ -60,32 +60,32 @@ class DeviceRegistry:
             self.makeReport(device)
 
     def onPeriodic(self):
+        return
         for device, deviceGuard in self.guardedDevices.items():
             for di, alarms in deviceGuard.onPeriodic():
-                pass
+                self.setChanges(device, di, alarms)
             self.makeReport(device)
 
     def makeReport(self, device):
         report = DeviceReport(device, copy.deepcopy(self.alarmStates[device]))
         self.reportManager.report(report)
+        self.clearChanges(device)
 
     def setChanges(self, device, dataIdentifier, alarms):
         for alarm in alarms:
             active, message = alarms[alarm]
             wasActive, changed, updated, previousMessage = self.alarmStates[device][dataIdentifier][alarm]
-            _active = active
             _changed = False
             if active != wasActive:
                 _changed = True
             _updated = True
-            self.alarmStates[device][dataIdentifier][alarm] = (_active, _changed, _updated, message)
+            self.alarmStates[device][dataIdentifier][alarm] = (active, _changed, _updated, message)
 
-    def clearChanges(self):
-        for device in self.guardedDevices:
-            for dataIdentifier in self.guardedDevices[device]:
-                for alarm in self.guardedDevices[device][dataIdentifier]:
-                    active, changed, updated, message = self.guardedDevices[device][dataIdentifier][alarm]
-                    self.guardedDevices[device][dataIdentifier][alarm] = (active, False, False, message)
+    def clearChanges(self, device):
+        for dataIdentifier in self.alarmStates[device]:
+            for alarm in self.alarmStates[device][dataIdentifier]:
+                active, changed, updated, message = self.alarmStates[device][dataIdentifier][alarm]
+                self.alarmStates[device][dataIdentifier][alarm] = (active, False, False, message)
 
     def start(self):
         """!
@@ -149,6 +149,9 @@ class DeviceGuard:
         return results
 
     def getGuardAlarms(self):
+        """!
+        Get mapping of DataIdentifier: Alarm class iterable.
+        """
         alarms = {}
         for updateGuard in self.updateGuards:
             alarms[updateGuard.dataIdentifier] = updateGuard.getAlarmClasses()
@@ -234,12 +237,15 @@ class UpdateGuard:
         return updateDataIdentifier == self.dataIdentifier
 
     def getAlarmClasses(self):
-        alarmClasses = []
+        """!
+        Get iterable of all used alarm classes.
+
+        @return Iterable of alarm classes
+        """
         for alarm in self.messageAlarms:
-            alarmClasses.append(alarm.__class__)
+            yield alarm.__class__
         for alarm in self.periodicAlarms:
-            alarmClasses.append(alarm.__class__)
-        return alarmClasses
+            yield alarm.__class__
 
 class PeriodicChecker:
     """!

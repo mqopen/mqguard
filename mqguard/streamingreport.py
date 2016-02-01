@@ -18,7 +18,6 @@ import threading
 import queue
 
 from mqguard.reporting import BaseReporter
-from mqguard.fail import DeviceFailureSupervisor
 
 class StreamingReporter(BaseReporter):
     """!
@@ -33,23 +32,6 @@ class StreamingReporter(BaseReporter):
         """
         BaseReporter.__init__(self, synchronizer)
         self.outputFormatter = outputFormatter
-        self.supervisors = {}
-
-    def addDevice(self, device, guard):
-        failureSupervisor = DeviceFailureSupervisor(device)
-        for updateGuard in guard.updateGuards:
-            failureSupervisor.supervise(updateGuard.dataIdentifier, updateGuard.getAlarmClasses())
-        self.supervisors[device] = failureSupervisor
-
-    def report(self, deviceReport):
-        device, dataIdentifier, alarmActive, reason = event
-        #dataIdentifier, alarmClass, message = reason
-        supervisor = self.supervisors[device]
-        supervisor.update(dataIdentifier, alarmClass, not isOK, message)
-        if supervisor.hasChange():
-            deviceReport = self.supervisor.getChanges()
-            self.updateSessions(deviceReport)
-            supervisor.resetChanges()
 
     def updateSessions(self, deviceReport):
         """!
@@ -99,9 +81,10 @@ class SocketReporter(StreamingReporter):
     def sessionEnd(self, session):
         self.sessions.remove(session)
 
-    def updateSessions(self, deviceReport):
-        for session in self.sessions:
-            session.update(deviceReport)
+    def report(self, deviceReport):
+        if deviceReport.hasChanges():
+            for session in self.sessions:
+                session.update(deviceReport)
 
 class SocketReporterSession:
     """!
@@ -113,7 +96,7 @@ class SocketReporterSession:
         self.formatter = formatter
         self.client = client
         self.address = address
-        self.eventQueue = queue.Queue()
+        self.reportQueue = queue.Queue()
         self.running = False
 
     def __call__(self):
@@ -121,7 +104,7 @@ class SocketReporterSession:
         toSend = "{}\n".format(self.formatter.formatInitialData())
         self.client.send(toSend.encode("utf-8"))
         while self.running:
-            deviceReport = self.eventQueue.get()
+            deviceReport = self.reportQueue.get()
             if deviceReport is not None:
                 toSend = "{}\n".format(self.formatter.formatDeviceReport(deviceReport))
                 self.client.send(toSend.encode("utf-8"))
@@ -136,13 +119,13 @@ class SocketReporterSession:
     def stop(self):
         self.running = False
         # Put None into message queue to wake up consumer thread.
-        self.eventQueue.put(None)
+        self.reportQueue.put(None)
 
     def isRunning(self):
         return self.running
 
     def update(self, deviceReport):
-        self.eventQueue.put(deviceReport)
+        self.reportQueue.put(deviceReport)
 
 class WebsocketReporter(StreamingReporter):
     """!

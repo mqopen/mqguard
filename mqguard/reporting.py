@@ -19,56 +19,6 @@ Sending reports.
 
 import threading
 
-class DeviceReport:
-    """!
-    Group of device failures. Single device is represented by multiple topics and broker
-    paris. Each of this pair has multiple alarms.
-
-    Device can report failure for each pair. This class groups togeteher all these failures.
-    """
-
-    ## @var device
-    # Device identification object.
-
-    def __init__(self, device):
-        """!
-        Initialize report object.
-
-        @param device Device identification object.
-        """
-        self.device = device
-        self.reasons = []
-
-    def addFailureReason(self, reason):
-        """!
-        Add failure to report.
-
-        @param reason Failure reason object.
-        """
-        self.reasons.append(reason)
-
-    def hasFailures(self):
-        """!
-        Check if device has any failures.
-
-        @return True if device has failures, False otherwise.
-        """
-        return len(self.reasons) > 0
-
-class DeviceFailureReason:
-    """!
-    Single device failure
-    """
-
-    def __init__(self, failureDataIdentifier, alarm, message):
-        """!
-        Initialize failure object.
-
-        @param failureDataIdentifier DataIdentifier which causes failure.
-        @param alarm Identification of alarm which detected wrong message.
-        @param message Alarm message.
-        """
-
 class ReportingManager:
     """!
     Managing group of reporters.
