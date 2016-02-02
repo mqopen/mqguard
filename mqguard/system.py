@@ -69,7 +69,7 @@ class System:
                 for alarm in alarms:
                     updateGuard.addAlarm(alarm)
                 deviceGuard.addUpdateGuard(updateGuard)
-            yield (deviceName, deviceGuard)
+            yield deviceName, deviceGuard
 
     @classmethod
     def getReporters(cls):

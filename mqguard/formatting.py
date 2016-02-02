@@ -48,7 +48,7 @@ class SystemDataProvider(FormatDataProvider):
         return self.systemClass.getBrokerListenDescriptors()
 
     def getDevices(self):
-        return []
+        return self.systemClass.getDeviceGuards()
 
 class BaseFormatter:
     """!
@@ -72,27 +72,13 @@ class JSONFormatter(BaseFormatter):
 
     def formatInitialData(self):
         """!
+        Get string to initiate session.
         """
         data = {"feed": "init", "devices": [], "brokers": []}
-        for device in self.dataProvider.getDevices():
-            data["devices"].append(device)
+        for deviceName, deviceGuard in self.dataProvider.getDevices():
+            data["devices"].append(self.createDevice(deviceName, deviceGuard))
         for broker, subscriptions in self.dataProvider.getBrokerListenDescriptors():
             data["brokers"].append(self.createBroker(broker, subscriptions))
-        return self.encoder.encode(data)
-
-    def formatUpdate(self, event):
-        """!
-        """
-        device, isOK, reason = event
-        dataIdentifier, alarmClass, message = reason
-        data = {
-            "feed": "update",
-            "devices": [{
-                "name": device,
-                "status": ["ok", "error"][int(isOK)],
-                "reason": {
-                    "alarm": alarmClass.__name__,
-                    "message": message}}]}
         return self.encoder.encode(data)
 
     def formatDeviceReport(self, deviceReport):
@@ -115,6 +101,26 @@ class JSONFormatter(BaseFormatter):
             "status": ["ok", "error"][int(active)],
             "message": ["ok", message][int(active)]}
         return reason
+
+    def createDevice(self, deviceName, deviceGuard):
+        device = {
+            "name": deviceName,
+            "description": None,
+            "guards": [guard for guard in self.getGuards(deviceGuard)]}
+        return device
+
+    def getGuards(self, deviceGuard):
+        """!
+        get iterable of device guards.
+        """
+        for updateGuard in deviceGuard.updateGuards:
+            yield self.createGuard(updateGuard)
+
+    def createGuard(self, updateGuard):
+        guard = {
+            "name": updateGuard.name,
+            "di": str(updateGuard.dataIdentifier)}
+        return guard
 
     def createBroker(self, broker, subscriptions):
         data = {
