@@ -15,13 +15,14 @@
 
 import unittest
 from mqguard.alarms import *
+from mqguard.alarms import BaseAlarm, AlarmType, AlarmPriority
 from mqreceive.data import DataIdentifier
 from mqreceive.broker import Broker
 
 class TestBaseAlarm(unittest.TestCase):
     def setUp(self):
-        self.messageAlarm = BaseAlarm(AlarmType.messageDriven)
-        self.periodicAlarm = BaseAlarm(AlarmType.periodic)
+        self.messageAlarm = BaseAlarm(AlarmType.messageDriven, AlarmPriority.errorCode)
+        self.periodicAlarm = BaseAlarm(AlarmType.periodic, AlarmPriority.errorCode)
     def test_init(self):
         self.assertEqual(AlarmType.messageDriven, self.messageAlarm.alarmType)
         self.assertEqual(AlarmType.periodic, self.periodicAlarm.alarmType)
@@ -40,16 +41,16 @@ class TestRangeAlarm(BaseTestRangeAlarm, unittest.TestCase):
         self.assertEqual(1, self.alarm.upperLimit)
     def test_lowerLimitOK(self):
         result, _ = self.alarm.checkDecodedMessage(self.dataIdentifier, -1)
-        self.assertTrue(result)
+        self.assertFalse(result)
     def test_lowerLimitFail(self):
         result, _ = self.alarm.checkDecodedMessage(self.dataIdentifier, -2)
-        self.assertFalse(result)
+        self.assertTrue(result)
     def test_upperLimitOK(self):
         result, _ = self.alarm.checkDecodedMessage(self.dataIdentifier, 1)
-        self.assertTrue(result)
+        self.assertFalse(result)
     def test_upperLimitFail(self):
         result, _ = self.alarm.checkDecodedMessage(self.dataIdentifier, 2)
-        self.assertFalse(result)
+        self.assertTrue(result)
 class TestLowerLimitRangeAlarm(BaseTestRangeAlarm, unittest.TestCase):
     def setUp(self):
         self.createDataIdentifier()
@@ -60,13 +61,13 @@ class TestLowerLimitRangeAlarm(BaseTestRangeAlarm, unittest.TestCase):
         self.assertEqual(float('inf'), self.alarm.upperLimit)
     def test_lowerLimitOK(self):
         result, _ = self.alarm.checkDecodedMessage(self.dataIdentifier, -1)
-        self.assertTrue(result)
+        self.assertFalse(result)
     def test_lowerLimitFail(self):
         result, _ = self.alarm.checkDecodedMessage(self.dataIdentifier, -2)
-        self.assertFalse(result)
+        self.assertTrue(result)
     def test_upperLimitOK(self):
         result, _ = self.alarm.checkDecodedMessage(self.dataIdentifier, 1000)
-        self.assertTrue(result)
+        self.assertFalse(result)
 class TestUpperLimitRangeAlarm(BaseTestRangeAlarm, unittest.TestCase):
     def setUp(self):
         self.createDataIdentifier()
@@ -77,10 +78,10 @@ class TestUpperLimitRangeAlarm(BaseTestRangeAlarm, unittest.TestCase):
         self.assertEqual(1, self.alarm.upperLimit)
     def test_lowerLimitOK(self):
         result, _ = self.alarm.checkDecodedMessage(self.dataIdentifier, -1000)
-        self.assertTrue(result)
+        self.assertFalse(result)
     def test_upperLimitOK(self):
         result, _ = self.alarm.checkDecodedMessage(self.dataIdentifier, 1)
-        self.assertTrue(result)
+        self.assertFalse(result)
     def test_upperLimitFail(self):
         result, _ = self.alarm.checkDecodedMessage(self.dataIdentifier, 2)
-        self.assertFalse(result)
+        self.assertTrue(result)
