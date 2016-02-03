@@ -16,6 +16,8 @@
 import socket
 import threading
 import queue
+import asyncio
+import websockets
 
 from mqguard.reporting import BaseReporter
 
@@ -132,10 +134,61 @@ class WebsocketReporter(StreamingReporter):
     Sending reports over websockets.
     """
 
-    def __init__(self, synchronizer, outputFormatter):
+    def __init__(self, synchronizer, outputFormatter, bindAddress):
         """!
         Initialize websocket reporter.
 
         @param outputFormatter Formatter object for final report result
         """
         StreamingReporter.__init__(self, synchronizer, outputFormatter)
+        self.bindAddress = bindAddress
+        self.sessions = set()
+        self.server = websockets.serve(self.handleClient, 'localhost', 8765)
+
+    def __call__(self):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(self.server)
+        loop.run_forever()
+
+    def stop(self):
+        self.server.close()
+
+    def report(self, deviceReport):
+        if deviceReport.hasChanges():
+            for session in self.sessions:
+                session.update(deviceReport)
+
+    @asyncio.coroutine
+    def handleClient(self, websocket, path):
+        session = WebsocketReporterSession(self, self.outputFormatter, websocket, path)
+        self.sessions.add(session)
+        yield from session()
+
+class WebsocketReporterSession:
+    """!
+    Single websocket session.
+    """
+
+    def __init__(self, sessionManager, formatter, websocket, path):
+        self.sessionManager = sessionManager
+        self.formatter = formatter
+        self.websocket = websocket
+        self.path = path
+        self.reportQueue = asyncio.Queue()
+        self.running = False
+
+    @asyncio.coroutine
+    def __call__(self):
+        self.running = True
+        toSend = "{}\n".format(self.formatter.formatInitialData())
+        yield from self.websocket.send(toSend.encode("utf-8"))
+        while self.running:
+            deviceReport = yield from self.reportQueue.get()
+            if deviceReport is not None:
+                toSend = "{}\n".format(self.formatter.formatDeviceReport(deviceReport))
+                yield from self.websocket.send(toSend.encode("utf-8"))
+
+    @asyncio.coroutine
+    def update(self, deviceReport):
+        yield from self.reportQueue.put(deviceReport)

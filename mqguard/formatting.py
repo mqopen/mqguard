@@ -106,6 +106,7 @@ class JSONFormatter(BaseFormatter):
         device = {
             "name": deviceName,
             "description": None,
+            "status": None,
             "guards": [guard for guard in self.getGuards(deviceGuard)]}
         return device
 

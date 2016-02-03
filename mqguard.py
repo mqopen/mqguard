@@ -41,11 +41,11 @@ def main():
     # Start reporting threads.
     reportingManager.start()
 
-    # Start receiving threads.
-    brokerThreadManager.start()
-
     # Notify device registry to start.
     deviceRegistry.start()
+
+    # Start receiving threads.
+    brokerThreadManager.start()
 
     exitLock = threading.Semaphore(value = 0)
 

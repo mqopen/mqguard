@@ -42,6 +42,9 @@ class System:
             print("Configuration error: {}".format(ex), file=sys.stderr)
             exit(1)
         cls.verbose = cls.cliArgs.verbose
+        cls._brokerListenDescriptors = None
+        cls._deviceGuards = None
+        cls._reporters = None
 
     @classmethod
     def getBrokerListenDescriptors(cls):
@@ -50,8 +53,11 @@ class System:
 
         @return (broker, ["subscribeTopic"])
         """
-        for broker, subscriptions in cls.configCache.brokers:
-            yield (broker, subscriptions)
+        if cls._brokerListenDescriptors is None:
+            cls._brokerListenDescriptors = []
+            for i in cls._createBrokerListenDescriptors():
+                cls._brokerListenDescriptors.append(i)
+        return cls._brokerListenDescriptors
 
     @classmethod
     def getDeviceGuards(cls):
@@ -60,6 +66,30 @@ class System:
 
         @return Iterable of tuples (device, guard)
         """
+        if cls._deviceGuards is None:
+            cls._deviceGuards = []
+            for i in cls._createDeviceGuards():
+                cls._deviceGuards.append(i)
+        return cls._deviceGuards
+
+    @classmethod
+    def getReporters(cls):
+        """!
+        Get enabled reporters.
+        """
+        if cls._reporters is None:
+            cls._reporters = []
+            for i in cls._createReporters():
+                cls._reporters.append(i)
+        return cls._reporters
+
+    @classmethod
+    def _createBrokerListenDescriptors(cls):
+        for broker, subscriptions in cls.configCache.brokers:
+            yield (broker, subscriptions)
+
+    @classmethod
+    def _createDeviceGuards(cls):
         for deviceName, presence, guards in cls.configCache.devices:
             deviceGuard = DeviceGuard()
             for guardName, dataIdentificationPrototype, alarms in guards:
@@ -72,10 +102,7 @@ class System:
             yield deviceName, deviceGuard
 
     @classmethod
-    def getReporters(cls):
-        """!
-        Get enabled reporters.
-        """
+    def _createReporters(cls):
         for reporterName, reporterType, reporter in cls.configCache.reporters:
             reporter.injectSystemClass(cls)
             yield reporter
