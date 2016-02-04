@@ -146,10 +146,11 @@ class WebsocketReporter(StreamingReporter):
         self.server = websockets.serve(self.handleClient, 'localhost', 8765)
 
     def __call__(self):
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(self.server)
-        loop.run_forever()
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+        self.loop.set_debug(True)
+        self.loop.create_task(self.server)
+        self.loop.run_forever()
 
     def stop(self):
         self.server.close()
@@ -157,13 +158,16 @@ class WebsocketReporter(StreamingReporter):
     def report(self, deviceReport):
         if deviceReport.hasChanges():
             for session in self.sessions:
-                session.update(deviceReport)
+                self.loop.call_soon_threadsafe(self.addUpdate, session, deviceReport)
+
+    def addUpdate(self, session, deviceReport):
+        self.loop.create_task(session.update(deviceReport))
 
     @asyncio.coroutine
     def handleClient(self, websocket, path):
         session = WebsocketReporterSession(self, self.outputFormatter, websocket, path)
         self.sessions.add(session)
-        yield from session()
+        yield from session.handleSession()
 
 class WebsocketReporterSession:
     """!
@@ -179,7 +183,7 @@ class WebsocketReporterSession:
         self.running = False
 
     @asyncio.coroutine
-    def __call__(self):
+    def handleSession(self):
         self.running = True
         toSend = "{}\n".format(self.formatter.formatInitialData())
         yield from self.websocket.send(toSend.encode("utf-8"))
@@ -191,4 +195,5 @@ class WebsocketReporterSession:
 
     @asyncio.coroutine
     def update(self, deviceReport):
+        print("called")
         yield from self.reportQueue.put(deviceReport)
