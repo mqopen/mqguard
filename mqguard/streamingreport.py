@@ -186,12 +186,12 @@ class WebsocketReporterSession:
     def handleSession(self):
         self.running = True
         toSend = "{}\n".format(self.formatter.formatInitialData())
-        yield from self.websocket.send(toSend.encode("utf-8"))
+        yield from self.websocket.send(toSend)
         while self.running:
             deviceReport = yield from self.reportQueue.get()
             if deviceReport is not None:
                 toSend = "{}\n".format(self.formatter.formatDeviceReport(deviceReport))
-                yield from self.websocket.send(toSend.encode("utf-8"))
+                yield from self.websocket.send(toSend)
 
     @asyncio.coroutine
     def update(self, deviceReport):
