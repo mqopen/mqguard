@@ -70,16 +70,72 @@ class JSONFormatter(BaseFormatter):
         BaseFormatter.__init__(self, dataProvider)
         self.encoder = json.JSONEncoder(indent = 4)
 
-    def formatInitialData(self):
+### Initial Data ###############################################################
+
+    def formatInitialData(self, deviceReports):
         """!
         Get string to initiate session.
         """
         data = {"feed": "init", "devices": [], "brokers": []}
         for deviceName, deviceGuard in self.dataProvider.getDevices():
-            data["devices"].append(self.createDevice(deviceName, deviceGuard))
+            data["devices"].append(self.createDevice(deviceName, deviceGuard, deviceReports[deviceName]))
         for broker, subscriptions in self.dataProvider.getBrokerListenDescriptors():
             data["brokers"].append(self.createBroker(broker, subscriptions))
         return self.encoder.encode(data)
+
+    def createDevice(self, deviceName, deviceGuard, deviceReport):
+        device = {
+            "name": deviceName,
+            "description": None,
+            "status": None,
+            "reasons": self._getReasons(deviceReport),
+            "guards": [guard for guard in self.getGuards(deviceGuard)]}
+        return device
+
+    def _getReasons(self, deviceReport):
+        """!
+        Get list of reasons or None.
+        """
+        if not deviceReport.hasFailures():
+            return None
+        else:
+            return [self.createReason(reason) for reason in deviceReport.getFailures()]
+
+    def createReason(self, failure):
+        return None
+
+    def getGuards(self, deviceGuard):
+        """!
+        get iterable of device guards.
+        """
+        for updateGuard in deviceGuard.updateGuards:
+            yield self.createGuard(updateGuard)
+
+    def createGuard(self, updateGuard):
+        guard = {
+            "{}:{}".format(
+                updateGuard.dataIdentifier.broker.name,
+                updateGuard.dataIdentifier.topic): [alarm for alarm in self.getAlarms(updateGuard)]}
+        return guard
+
+    def getAlarms(self, updateGuard):
+        for alarmClass in updateGuard.getAlarmClasses():
+            yield self.createAlarm(alarmClass)
+
+    def createAlarm(self, alarmClass):
+        alarm = {"alarm": alarmClass.__name__}
+        return alarm
+
+    def createBroker(self, broker, subscriptions):
+        data = {
+            "name": broker.name,
+            "host": broker.host,
+            "port": broker.port,
+            "public": not broker.isAuthenticationRequired(),
+            "subscriptions": subscriptions,}
+        return data
+
+### Update #####################################################################
 
     def formatDeviceReport(self, deviceReport):
         """!
@@ -92,6 +148,11 @@ class JSONFormatter(BaseFormatter):
                 "reasons": [self.createReason(changes) for changes in deviceReport.getChanges()]}]}
         return self.encoder.encode(data)
 
+    def getReasons(self):
+        """!
+        Get iterable of device reasons.
+        """
+
     def createReason(self, changes):
         dataIdentifier, alarm, report = changes
         active, changed, updated, message = report
@@ -101,33 +162,3 @@ class JSONFormatter(BaseFormatter):
             "status": ["ok", "error"][int(active)],
             "message": ["ok", message][int(active)]}
         return reason
-
-    def createDevice(self, deviceName, deviceGuard):
-        device = {
-            "name": deviceName,
-            "description": None,
-            "status": None,
-            "guards": [guard for guard in self.getGuards(deviceGuard)]}
-        return device
-
-    def getGuards(self, deviceGuard):
-        """!
-        get iterable of device guards.
-        """
-        for updateGuard in deviceGuard.updateGuards:
-            yield self.createGuard(updateGuard)
-
-    def createGuard(self, updateGuard):
-        guard = {
-            "name": updateGuard.name,
-            "di": str(updateGuard.dataIdentifier)}
-        return guard
-
-    def createBroker(self, broker, subscriptions):
-        data = {
-            "name": broker.name,
-            "host": broker.host,
-            "port": broker.port,
-            "public": not broker.isAuthenticationRequired(),
-            "subscriptions": subscriptions,}
-        return data

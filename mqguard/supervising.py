@@ -36,6 +36,9 @@ class DeviceRegistry:
         self.guardedDevices = {}
         self.alarmStates = {}
 
+        # Inject device registry to all reporters.
+        self.reportManager.injectDeviceRegistry(self)
+
     def addGuardedDevice(self, device, guard):
         self.guardedDevices[device] = guard
         self.addAlarmTrack(device, guard)
@@ -96,6 +99,12 @@ class DeviceRegistry:
         """!
         """
         self.periodicChecker.stop()
+
+    def getDeviceReports(self):
+        reports = {}
+        for device in self.alarmStates:
+            reports[device] = DeviceReport(device, copy.deepcopy(self.alarmStates[device]))
+        return reports
 
 class DeviceGuard:
     """!

@@ -63,6 +63,13 @@ class ReportingManager:
         for reporter in self.reporters:
             reporter.stop()
 
+    def injectDeviceRegistry(self, deviceRegistry):
+        """!
+        Inject device registry to all registered reporters.
+        """
+        for reporter in self.reporters:
+            reporter.injectDeviceRegistry(deviceRegistry)
+
 class BaseReporter:
     """!
     Reporter base class.
@@ -75,6 +82,7 @@ class BaseReporter:
         @param synchronizer Synchronizing object. Used for notifying reporter asynchronous events.
         """
         self.synchronizer = synchronizer
+        self.deviceRegistry = None
         self.running = False
 
     def addDevice(self, device, guard):
@@ -125,6 +133,17 @@ class BaseReporter:
         """!
         Oppotunity for reporter to get system reference.
         """
+
+    def injectDeviceRegistry(self, deviceRegistry):
+        self.deviceRegistry = deviceRegistry
+
+    def hasDeviceRegistry(self):
+        """!
+        Check if device registry object has been injected.
+
+        @return True if device registry is injected, False otherwise.
+        """
+        return self.deviceRegistry is not None
 
 class LogReporter(BaseReporter):
     """!

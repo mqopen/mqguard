@@ -185,7 +185,8 @@ class WebsocketReporterSession:
     @asyncio.coroutine
     def handleSession(self):
         self.running = True
-        toSend = "{}\n".format(self.formatter.formatInitialData())
+        # TODO: Really need to fix this!!
+        toSend = "{}\n".format(self.formatter.formatInitialData(self.sessionManager.deviceRegistry.getDeviceReports()))
         yield from self.websocket.send(toSend)
         while self.running:
             deviceReport = yield from self.reportQueue.get()
