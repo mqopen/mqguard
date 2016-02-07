@@ -3,6 +3,17 @@
 mqguard is tool for health monitoring and diagnostic of MQTT network. It is able
 to warn user about IoT device errors and provide real time diagnostic service.
 
+## Options
+
+ - `-c`, `--config` - Specify configuration file. Default `/etc/mqguard.conf`.
+ - `-v`, `--verbose` - Verbose mode.
+ - `-h`, `--help` - Show help message and exit.
+ - `--version` - Print version.
+
+## Configuration
+
+mqguard is configured using configuration file with [INI](https://en.wikipedia.org/wiki/INI_file) format.
+
 ### Configuration file syntax
 
 Configuration file is divided into multiple sections which forms tree-like structure.
