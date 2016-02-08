@@ -86,8 +86,8 @@ class JSONFormatter(BaseFormatter):
     def createDevice(self, deviceName, deviceGuard, deviceReport):
         device = {
             "name": deviceName,
-            "description": None,
-            "status": None,
+            "description": "Device description not implemented yet",
+            "status": ["ok", "error"][int(deviceReport.hasFailures())],
             "reasons": self._getReasons(deviceReport),
             "guards": [guard for guard in self.getGuards(deviceGuard)]}
         return device
