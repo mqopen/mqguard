@@ -14,21 +14,24 @@
             "status": "ok",
             "reasons": null,
             "guards": [
-                "my-broker:device/topic": [
-                    {
-                        "alarm": "range",
-                        "lowerLimit": -1,
-                        "upperLimit": 1,
-                    },
-                    {
-                        "alarm": "dataType",
-                        "validCharacters": ["a", "b"],
-                    },
-                    {
-                        "alarm": "errorCodes",
-                        "errorCodes": ["E_SYNC", "E_CONN"],
-                    },
-                ],
+                {
+                    "dataIdentifier": "my-broker:device/topic",
+                    "alarms": [
+                        {
+                            "alarm": "range",
+                            "lowerLimit": -1,
+                            "upperLimit": 1,
+                        },
+                        {
+                            "alarm": "dataType",
+                            "validCharacters": ["a", "b"],
+                        },
+                        {
+                            "alarm": "errorCodes",
+                            "errorCodes": ["E_SYNC", "E_CONN"],
+                        },
+                    ]
+                },
             ],
         },
     ],
