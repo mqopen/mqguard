@@ -196,5 +196,4 @@ class WebsocketReporterSession:
 
     @asyncio.coroutine
     def update(self, deviceReport):
-        print("called")
         yield from self.reportQueue.put(deviceReport)

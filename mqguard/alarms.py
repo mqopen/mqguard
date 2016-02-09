@@ -227,10 +227,10 @@ class DataTypeAlarm(BaseAlarm):
         BaseAlarm.__init__(self, AlarmType.messageDriven, AlarmPriority.dataType)
     @classmethod
     def numeric(cls, additions = []):
-        return None
+        return cls(None)
     @classmethod
     def alphanumeric(cls, additions = []):
-        return None
+        return cls(None)
     @classmethod
     def alphabetic(cls, additions = []):
-        return None
+        return cls(None)

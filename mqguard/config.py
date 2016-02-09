@@ -232,6 +232,7 @@ class ProgramConfig:
         alarmsBuilder.add(self.getRangeAlarm(updateGuardSection))
         alarmsBuilder.add(self.getPeriodMinAlarm(updateGuardSection))
         alarmsBuilder.add(self.getPeriodMaxAlarm(updateGuardSection))
+        alarmsBuilder.add(self.getErrorCodesAlarm(updateGuardSection))
         return alarmsBuilder.getAlarms()
 
     def getDataTypeAlarm(self, updateGuardSection):
@@ -296,6 +297,13 @@ class ProgramConfig:
                         updateGuardSection,
                         periodMaxOption,
                         self.parser.get(updateGuardSection, periodMaxOption)))
+        else:
+            return None
+
+    def getErrorCodesAlarm(self, updateGuardSection):
+        if self.parser.has_option(updateGuardSection, "ErrorCodes"):
+            errorCodes = self.parser.get(updateGuardSection, "ErrorCodes").split()
+            return ErrorCodesAlarm(errorCodes)
         else:
             return None
 

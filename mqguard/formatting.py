@@ -112,18 +112,19 @@ class JSONFormatter(BaseFormatter):
             yield self.createGuard(updateGuard)
 
     def createGuard(self, updateGuard):
+        jsonDI = "{}:{}".format(updateGuard.dataIdentifier.broker.name, updateGuard.dataIdentifier.topic)
         guard = {
-            "{}:{}".format(
-                updateGuard.dataIdentifier.broker.name,
-                updateGuard.dataIdentifier.topic): [alarm for alarm in self.getAlarms(updateGuard)]}
+            "dataIdentifier": jsonDI,
+            "alarms": [alarm for alarm in self.getAlarms(updateGuard.getAlarmClasses())]}
         return guard
 
-    def getAlarms(self, updateGuard):
-        for alarmClass in updateGuard.getAlarmClasses():
+    def getAlarms(self, alarmClasses):
+        for alarmClass in alarmClasses:
             yield self.createAlarm(alarmClass)
 
     def createAlarm(self, alarmClass):
-        alarm = {"alarm": alarmClass.__name__}
+        alarm = {
+            "alarm": alarmClass.__name__}
         return alarm
 
     def createBroker(self, broker, subscriptions):
