@@ -13,6 +13,15 @@
             // Current device status. Values: "ok"|"error"
             "status": "ok",
             "reasons": null,
+            "presence": {
+                "isEnabled": true,
+                "dataIdentifier": "broker-name:device/presence/topic",
+                "onlineMessage": "online",
+                "offlineMessage": "offline",
+                "lastMessage": "offline",
+                "status": "error",
+                "message": "Device goes offline"
+            }
             "guards": [
                 {
                     "dataIdentifier": "my-broker:device/topic",
@@ -31,9 +40,9 @@
                             "errorCodes": ["E_SYNC", "E_CONN"],
                         },
                     ]
-                },
-            ],
-        },
+                }
+            ]
+        }
     ],
     "brokers": [
         {
