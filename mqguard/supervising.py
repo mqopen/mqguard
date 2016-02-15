@@ -35,6 +35,7 @@ class DeviceRegistry:
         self.periodicChecker = PeriodicChecker.secondCheck(self, 1)
         self.guardedDevices = {}
         self.alarmStates = {}
+        self.presenceMapping = {}
 
         # Inject device registry to all reporters.
         self.reportManager.injectDeviceRegistry(self)
@@ -53,13 +54,31 @@ class DeviceRegistry:
                 changed = False
                 updated = False
                 message = None
-                self.alarmStates[device][dataIdentifier][alarmClass] = (active, changed, updated, message)
+                self.alarmStates[device][dataIdentifier][alarmClass] = (
+                    active,
+                    changed,
+                    updated,
+                    message)
+        self.presenceMapping[device] = self.createPresence(device, guard)
+
+    def createPresence(self, device, guard):
+        active = False
+        changed = False
+        updated = False
+        message = None
+        if guard.hasPresence():
+            active = True
+            message = "Online message not received yet"
+        return active, changed, updated, message
 
     def onMessage(self, broker, topic, data):
         dataIdentifier = DataIdentifier(broker, topic)
         for device, deviceGuard in self.guardedDevices.items():
-            for di, alarms in deviceGuard.messageReceived(dataIdentifier, data).items():
+            result = deviceGuard.messageReceived(dataIdentifier, data)
+            for di, alarms in result.updateGuardMapping.items():
                 self.setChanges(device, di, alarms)
+            if result.hasPresenceUpdate():
+                self.updateDevicePresence(device, result.presenceAlarms)
             self.makeReport(device)
 
     def onPeriodic(self):
@@ -70,7 +89,7 @@ class DeviceRegistry:
             self.makeReport(device)
 
     def makeReport(self, device):
-        report = DeviceReport(device, copy.deepcopy(self.alarmStates[device]))
+        report = self.getReport(device)
         self.reportManager.report(report)
         self.clearChanges(device)
 
@@ -83,6 +102,17 @@ class DeviceRegistry:
                 _changed = True
             _updated = True
             self.alarmStates[device][dataIdentifier][alarm] = (active, _changed, _updated, message)
+
+    def updateDevicePresence(self, device, presenceAlarms):
+        wasActive, changed, updated, previousMessage =  self.presenceMapping[device]
+        for alarm in presenceAlarms:
+            active, message = presenceAlarms[alarm]
+            _changed = False
+            if active != wasActive:
+                _changed = True
+            _updated = True
+            self.presenceMapping[device] = (active, _changed, _updated, message)
+            break
 
     def clearChanges(self, device):
         for dataIdentifier in self.alarmStates[device]:
@@ -103,8 +133,13 @@ class DeviceRegistry:
     def getDeviceReports(self):
         reports = {}
         for device in self.alarmStates:
-            reports[device] = DeviceReport(device, copy.deepcopy(self.alarmStates[device]))
+            reports[device] = self.getReport(device)
         return reports
+
+    def getReport(self, device):
+        presence = copy.deepcopy(self.presenceMapping[device])
+        alarms = copy.deepcopy(self.alarmStates[device])
+        return DeviceReport(device, presence, alarms)
 
 class DeviceGuard:
     """!
@@ -122,11 +157,18 @@ class DeviceGuard:
         @param name Device name.
         """
         self.updateGuards = []
+        self.presenceGuard = None
+        self.presence = None
 
-    def addPresenceGuard(self, presenceIdentifier, valuesDescription):
+    def addPresenceGuard(self, presence, presenceGuard):
         """
         Add check for presence message.
         """
+        self.presence = presence
+        self.presenceGuard = presenceGuard
+
+    def hasPresence(self):
+        return self.presenceGuard is not None
 
     def addUpdateGuard(self, updateGuard):
         """"!
@@ -140,12 +182,15 @@ class DeviceGuard:
 
         @return Mapping of DataIdentifier: alarmStates.
         """
-        results = {}
+        updateGuardMapping = {}
+        presenceAlarms = None
+        if self.presenceGuard is not None and self.presenceGuard.isUpdateRelevant(dataIdentifier):
+            presenceAlarms = self.presenceGuard.getUpdateCheck(dataIdentifier, data)
         for updateGuard in self.updateGuards:
             if updateGuard.isUpdateRelevant(dataIdentifier):
                 alarms = updateGuard.getUpdateCheck(dataIdentifier, data)
-                results[dataIdentifier] = alarms
-        return results
+                updateGuardMapping[dataIdentifier] = alarms
+        return DeviceGuardResult(presenceAlarms, updateGuardMapping)
 
     def onPeriodic(self):
         """!
@@ -255,6 +300,18 @@ class UpdateGuard:
             yield alarm.__class__
         for alarm in self.periodicAlarms:
             yield alarm.__class__
+
+class DeviceGuardResult:
+    """!
+    Package class for device guard result.
+    """
+
+    def __init__(self, presenceAlarms, updateGuardMapping):
+        self.presenceAlarms = presenceAlarms
+        self.updateGuardMapping = updateGuardMapping
+
+    def hasPresenceUpdate(self):
+        return self.presenceAlarms is not None
 
 class PeriodicChecker:
     """!

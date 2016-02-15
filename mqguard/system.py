@@ -20,6 +20,7 @@ from mqreceive.data import DataIdentifier
 from mqguard import args
 from mqguard.config import ProgramConfig, ConfigException
 from mqguard.supervising import DeviceGuard, UpdateGuard
+from mqguard.alarms import PresenceAlarm
 
 class System:
     """!
@@ -90,8 +91,17 @@ class System:
 
     @classmethod
     def _createDeviceGuards(cls):
-        for deviceName, presence, guards in cls.configCache.devices:
+        """!
+        Get iterable of tuples with device and its guard object.
+
+        @return Tuple of (Device, DeviceGuard)
+        """
+        for deviceName, presenceFactory, guards in cls.configCache.devices:
             deviceGuard = DeviceGuard()
+            devicePresence = presenceFactory.build(cls.configCache)
+            deviceGuard.addPresenceGuard(
+                devicePresence,
+                cls.createDevicePresenceGuard(deviceName, devicePresence))
             for guardName, dataIdentificationPrototype, alarms in guards:
                 brokerName, topic = dataIdentificationPrototype
                 dataIdentifier = cls.dataIdentifierFactory.build(brokerName, topic)
@@ -100,6 +110,13 @@ class System:
                     updateGuard.addAlarm(alarm)
                 deviceGuard.addUpdateGuard(updateGuard)
             yield deviceName, deviceGuard
+
+    @classmethod
+    def createDevicePresenceGuard(cls, device, presence):
+        presenceUpdateGuard = UpdateGuard(device, presence.dataIdentifier)
+        alarm = PresenceAlarm(presence.values)
+        presenceUpdateGuard.addAlarm(alarm)
+        return presenceUpdateGuard
 
     @classmethod
     def _createReporters(cls):

@@ -69,40 +69,90 @@ class JSONFormatter(BaseFormatter):
     def __init__(self, dataProvider):
         BaseFormatter.__init__(self, dataProvider)
         self.encoder = json.JSONEncoder(indent = 4)
-
-### Initial Data ###############################################################
+        self.deviceInitFormatting = JSONDevicesInitFormatting(dataProvider)
+        self.brokerInitFormatting = JSONBrokersInitFromatting(dataProvider)
+        self.deviceUpdateFormatting = JSONDevicesUpdateFormatting()
 
     def formatInitialData(self, deviceReports):
         """!
         Get string to initiate session.
         """
-        data = {"feed": "init", "devices": [], "brokers": []}
+        return self.encoder.encode({
+            "feed": "init",
+            "devices": self.deviceInitFormatting.formatInitialData(deviceReports),
+            "brokers": self.brokerInitFormatting.formatInitialData(deviceReports)})
+
+    def formatDeviceReport(self, deviceReport):
+        """!
+        """
+        return self.encoder.encode({
+            "feed": "update",
+            "devices": self.deviceUpdateFormatting.formatDeviceReport(deviceReport)})
+
+class JSONFormatting:
+    """!
+    Base class of formatting part of JSON output.
+    """
+
+    def formatDataIdentifier(self, dataIdentifier):
+        return {
+            "broker": dataIdentifier.broker.name,
+            "dataIdentifier": dataIdentifier.topic}
+
+    def formatStatus(self, isInError):
+        return ["ok", "error"][int(isInError)]
+
+class JSONInitFormatting(JSONFormatting):
+
+    def __init__(self, dataProvider):
+        self.dataProvider = dataProvider
+
+class JSONDevicesInitFormatting(JSONInitFormatting):
+    """!
+    Generate device part of JSON report.
+    """
+
+    def formatInitialData(self, deviceReports):
+        """!
+        """
+        devices = []
         for deviceName, deviceGuard in self.dataProvider.getDevices():
-            data["devices"].append(self.createDevice(deviceName, deviceGuard, deviceReports[deviceName]))
-        for broker, subscriptions in self.dataProvider.getBrokerListenDescriptors():
-            data["brokers"].append(self.createBroker(broker, subscriptions))
-        return self.encoder.encode(data)
+            devices.append(
+                self.createDevice(deviceName, deviceGuard, deviceReports[deviceName]))
+        return devices
 
     def createDevice(self, deviceName, deviceGuard, deviceReport):
-        device = {
+        return {
             "name": deviceName,
             "description": "Device description not implemented yet",
-            "status": ["ok", "error"][int(deviceReport.hasFailures())],
-            "reasons": self._getReasons(deviceReport),
-            "guards": [guard for guard in self.getGuards(deviceGuard)]}
-        return device
+            "status": self.formatStatus(deviceReport.hasFailures()),
+            "presence": self.createPresence(deviceName, deviceGuard),
+            "guards": [guard for guard in self.getGuards(deviceGuard)],
+            "reasons": self.getReasons(deviceReport)}
 
-    def _getReasons(self, deviceReport):
+    def createPresence(self, deviceName, deviceGuard):
         """!
-        Get list of reasons or None.
         """
-        if not deviceReport.hasFailures():
-            return None
+        if deviceGuard.hasPresence():
+            return self.createEnabledPresence(deviceName, deviceGuard)
         else:
-            return [self.createReason(reason) for reason in deviceReport.getFailures()]
+            return self.createDisabledPresence(deviceName, deviceGuard)
 
-    def createReason(self, failure):
-        return None
+    def createEnabledPresence(self, deviceName, deviceGuard):
+        diStr = self.formatDataIdentifier(deviceGuard.presence.dataIdentifier)
+        online, offline = deviceGuard.presence.values
+        return {
+            "isEnabled": True,
+            "dataIdentifier": diStr,
+            "onlineMessage": online,
+            "offlineMessage": offline}
+
+    def createDisabledPresence(self, deviceName, deviceGuard):
+        return {
+            "isEnabled": False,
+            "dataIdentifier": None,
+            "onlineMessage": None,
+            "offlineMessage": None}
 
     def getGuards(self, deviceGuard):
         """!
@@ -111,55 +161,113 @@ class JSONFormatter(BaseFormatter):
         for updateGuard in deviceGuard.updateGuards:
             yield self.createGuard(updateGuard)
 
+    def getReasons(self, deviceReport):
+        """!
+        Get list of reasons or None.
+        """
+        return {
+            "presence": self.getPresenceReason(deviceReport),
+            "guards": self.getGuardsReasons(deviceReport)}
+
+    def getPresenceReason(self, deviceReport):
+        """!
+        """
+        if deviceReport.hasPresenceFailure():
+            return {
+                "status": self.formatStatus(True),
+                "message": deviceReport.getPresenceMessage()}
+        else:
+            return None
+
+    def getGuardsReasons(self, deviceReport):
+        """!
+        """
+        if deviceReport.hasFailures():
+            return [self.createReason(failures) for failures in deviceReport.getFailures()]
+        else:
+            return None
+
+    def createReason(self, changes):
+        dataIdentifier, alarm, report = changes
+        active, changed, updated, message = report
+        return {
+            "guard": self.formatDataIdentifier(dataIdentifier),
+            "alarm": "{}".format(alarm.__name__),
+            "status": self.formatStatus(active),
+            "message": ["ok", message][int(active)]}
+
     def createGuard(self, updateGuard):
-        jsonDI = "{}:{}".format(updateGuard.dataIdentifier.broker.name, updateGuard.dataIdentifier.topic)
-        guard = {
-            "dataIdentifier": jsonDI,
+        return {
+            "dataIdentifier": self.formatDataIdentifier(updateGuard.dataIdentifier),
             "alarms": [alarm for alarm in self.getAlarms(updateGuard.getAlarmClasses())]}
-        return guard
 
     def getAlarms(self, alarmClasses):
         for alarmClass in alarmClasses:
             yield self.createAlarm(alarmClass)
 
     def createAlarm(self, alarmClass):
-        alarm = {
+        return {
             "alarm": alarmClass.__name__}
-        return alarm
+
+class JSONBrokersInitFromatting(JSONInitFormatting):
+    """!
+    Generate broker part of JSON report.
+    """
+
+    def formatInitialData(self, deviceReports):
+        """!
+        """
+        brokers = []
+        for broker, subscriptions in self.dataProvider.getBrokerListenDescriptors():
+            brokers.append(self.createBroker(broker, subscriptions))
+        return brokers
 
     def createBroker(self, broker, subscriptions):
-        data = {
+        return {
             "name": broker.name,
             "host": broker.host,
             "port": broker.port,
             "public": not broker.isAuthenticationRequired(),
-            "subscriptions": subscriptions,}
-        return data
+            "subscriptions": subscriptions}
 
-### Update #####################################################################
+class JSONUpdateFormatting(JSONFormatting):
+    """!
+    """
+
+class JSONDevicesUpdateFormatting(JSONUpdateFormatting):
+    """!
+    """
 
     def formatDeviceReport(self, deviceReport):
-        """!
-        """
-        data = {
-            "feed": "update",
-            "devices": [{
-                "name": deviceReport.device,
-                "status": ["ok", "error"][int(deviceReport.hasFailures())],
-                "reasons": [self.createReason(changes) for changes in deviceReport.getChanges()]}]}
-        return self.encoder.encode(data)
+        return [self.createDevice(deviceReport)]
 
-    def getReasons(self):
-        """!
-        Get iterable of device reasons.
-        """
+    def createDevice(self, deviceReport):
+        return {
+            "name": deviceReport.device,
+            "status": self.formatStatus(deviceReport.hasFailures()),
+            "reasons": self.createReasons(deviceReport)}
 
-    def createReason(self, changes):
-        dataIdentifier, alarm, report = changes
+    def createReasons(self, deviceReport):
+        return {
+            "presnce": self.createPresenceReason(deviceReport),
+            "guards": self.createGuardsReasons(deviceReport)}
+
+    def createPresenceReason(self, deviceReport):
+        if deviceReport.hasPresenceUpdate():
+            return {
+                "status": self.formatStatus(deviceReport.hasPresenceFailure()),
+                "message": deviceReport.getPresenceMessage()}
+        else:
+            return None
+
+    def createGuardsReasons(self, deviceReport):
+        return [self.createGuardsReason(reason) for reason in deviceReport.getChanges()]
+
+    def createGuardsReason(self, change):
+        dataIdentifier, alarm, report = change
         active, changed, updated, message = report
-        reason = {
-            "guard": "{}:{}".format(dataIdentifier.broker.name, dataIdentifier.topic),
+        return {
+            "guard": self.formatDataIdentifier(dataIdentifier),
             "alarm": "{}".format(alarm.__name__),
-            "status": ["ok", "error"][int(active)],
+            "status": self.formatStatus(active),
             "message": ["ok", message][int(active)]}
-        return reason

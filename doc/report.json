@@ -17,11 +17,8 @@
                 "isEnabled": true,
                 "dataIdentifier": "broker-name:device/presence/topic",
                 "onlineMessage": "online",
-                "offlineMessage": "offline",
-                "lastMessage": "offline",
-                "status": "error",
-                "message": "Device goes offline"
-            }
+                "offlineMessage": "offline"
+            },
             "guards": [
                 {
                     "dataIdentifier": "my-broker:device/topic",
@@ -68,14 +65,21 @@
             "name": "test-device",
             "status": "error",
             "reasons": {
-                [
-                    "guard": "my-broker:device/topic",
-                    "alarm": "range",
+                "presence": {
+                    "lastMessage": "offline",
                     "status": "error",
-                    "message": "Data out of range",
-                ],
-            },
-        },
+                    "message": "Device goes offline"
+                },
+                "guards": [
+                    {
+                        "guard": "my-broker:device/topic",
+                        "alarm": "range",
+                        "status": "error",
+                        "message": "Data out of range"
+                    }
+                ]
+            }
+        }
     ],
     "brokers": [
         {

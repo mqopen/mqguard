@@ -16,10 +16,12 @@
 import configparser
 
 from mqreceive.broker import Broker
+from mqreceive.data import DataIdentifier
 
 from mqguard.alarms import *
 from mqguard.streamingreport import SocketReporter, WebsocketReporter
 from mqguard.formatting import JSONFormatter, SystemDataProvider
+from mqguard.common import DevicePresence
 
 class ProgramConfig:
     """!
@@ -182,18 +184,19 @@ class ProgramConfig:
 
     def createDevice(self, deviceSection):
         deviceName = deviceSection
-        presence = self.getDevicePresence(deviceSection)
+        presenceFactory = self.getDevicePresenceFactory(deviceSection)
         guardSection = self.parser.get(deviceSection, "Guard")
         self.checkForSection(guardSection)
         guards = self.getDeviceGuards(guardSection)
-        return (deviceName, presence, guards)
+        return (deviceName, presenceFactory, guards)
 
-    def getDevicePresence(self, deviceSection):
+    def getDevicePresenceFactory(self, deviceSection):
         try:
             brokerName, presenceTopic = self.parser.get(deviceSection, "PresenceTopic").split()
-            presenceOnline, presenceOffline = self.getDevicePresenceValues(deviceSection)
+            presenceValues = self.getDevicePresenceValues(deviceSection)
+            return PresenceFactory(brokerName, presenceTopic, presenceValues)
         except configparser.NoOptionError as ex:
-            return ((None, None), (None, None))
+            return NoPresenceFactory()
 
     def getDevicePresenceValues(self, deviceSection):
         presenceOnline = None
@@ -438,6 +441,35 @@ class ConfigCache:
             if brokerName == broker.name:
                 return broker
         raise ConfigException("Unknown broker name: {}".format(brokerName))
+
+class BasePresenceFactory:
+    """!
+    Presence factory base class
+    """
+
+class PresenceFactory:
+    def __init__(self, brokerName, presenceTopic, presenceValues):
+        """!
+        Initiate presence factory object.
+        """
+        self.brokerName = brokerName
+        self.presenceTopic = presenceTopic
+        self.presenceValues = presenceValues
+
+    def build(self, brokerNameResolver):
+        """!
+        Build presence object
+        """
+        broker = brokerNameResolver.getBrokerByName(self.brokerName)
+        dataIdentifier = DataIdentifier(broker, self.presenceTopic)
+        return DevicePresence(dataIdentifier, self.presenceValues)
+
+class NoPresenceFactory:
+    def build(self, brokerNameResolver):
+        """!
+        Build empty presence object.
+        """
+        return DevicePresence.noPresence()
 
 class ConfigException(Exception):
     """!

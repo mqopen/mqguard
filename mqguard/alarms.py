@@ -189,18 +189,16 @@ class PresenceAlarm(BaseAlarm):
     Checking device presence message.
     """
 
-    def __init__(self, presenceDataIdentifier, presenceMessages):
+    def __init__(self, values):
         BaseAlarm.__init__(self, AlarmType.messageDriven, AlarmPriority.value)
-        self.presenceDataIdentifier = presenceDataIdentifier
-        self.presenceOnline, self.preseceOffline = presenceMessages
+        self.presenceOnline, self.preseceOffline = values
 
     def checkDecodedMessage(self, dataIdentifier, data):
-        if (dataIdentifier == self.presenceDataIdentifier):
-            if data == self.presenceOnline:
-                return (False, None)
-            if data == self.preseceOffline:
-                return (True, "Device is down")
-            return (True, "Unexpected presence message: {}".format(data))
+        if data == self.presenceOnline:
+            return (False, None)
+        if data == self.preseceOffline:
+            return (True, "Device goes offline")
+        return (True, "Unexpected presence message: {}".format(data))
 
 class ErrorCodesAlarm(BaseAlarm):
     """!

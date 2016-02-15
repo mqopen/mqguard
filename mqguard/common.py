@@ -24,15 +24,22 @@ class DeviceReport:
     """!
     """
 
-    def __init__(self, device, alarmStates):
+    def __init__(self, device, presence, alarmStates):
         self.device = device
+        self.presence = presence
         self.alarmStates = alarmStates
-        self._hasChanges, self._hasUpdates, self._hasFailures = self.createFlags()
+        (self._hasChanges,
+            self._hasUpdates,
+            self._hasFailures,
+            self._hasPresenceChange,
+            self._hasPresenceUpdate,
+            self._hasPresenceFailure) = self.createFlags()
 
     def createFlags(self):
         hasChanges = False
         hasUpdates = False
         hasFailures = False
+        hasPresenceFailure, hasPresenceChange, hasPresenceUpdate, _ = self.presence
         for alarmMapping in self.alarmStates.values():
             for active, changed, updated, message in alarmMapping.values():
                 if active:
@@ -42,8 +49,8 @@ class DeviceReport:
                 if updated:
                     hasUpdates = True
                 if hasFailures and hasUpdates and hasChanges:
-                    return hasChanges, hasUpdates, hasFailures
-        return hasChanges, hasUpdates, hasFailures
+                    return hasChanges, hasUpdates, hasFailures, hasPresenceChange, hasPresenceUpdate, hasPresenceFailure
+        return hasChanges, hasUpdates, hasFailures, hasPresenceChange, hasPresenceUpdate, hasPresenceFailure
 
     def hasChanges(self):
         """!
@@ -59,6 +66,15 @@ class DeviceReport:
         """!
         """
         return self._hasFailures
+
+    def hasPresenceChange(self):
+        return self._hasPresenceChange
+
+    def hasPresenceUpdate(self):
+        return self._hasPresenceUpdate
+
+    def hasPresenceFailure(self):
+        return self._hasPresenceFailure
 
     def getReport(self):
         """!
@@ -99,3 +115,23 @@ class DeviceReport:
                 self.hasFailures(),
                 self.hasChanges(),
                 self.hasUpdates())
+
+    def getPresenceMessage(self):
+        _, _, _, msg = self.presence
+        return msg
+
+class DevicePresence:
+    """!
+    Device presence message description object.
+    """
+
+    def __init__(self, dataIdentifier, values):
+        self.dataIdentifier = dataIdentifier
+        self.values = values
+
+    @classmethod
+    def noPresence(cls):
+        return cls(None, None)
+
+    def hasPresence(self):
+        return self.dataIdentifier is not None or self.values is not None
