@@ -15,17 +15,26 @@
 
 import argparse
 
+from mqguard import meta
+
+class HelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
+    def __init__(self, prog, indent_increment=2, max_help_position=64, width=180):
+        argparse.ArgumentDefaultsHelpFormatter.__init__(self, prog, indent_increment, max_help_position, width)
+
 def create_parser():
     parser = argparse.ArgumentParser(
-        description="MQTT monitoring tool",
-        epilog="Copyright (C) Ivo Slanina <ivo.slanina@gmail.com>",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        description="MQTT monitoring tool v{}".format(meta.__version__),
+        epilog="Copyright (C) {} <{}>".format(meta.__author__, meta.__email__),
+        formatter_class=HelpFormatter)
     parser.add_argument('-c', '--config',
                         help='path to configuration file',
                         default="/etc/mqguard.conf")
     parser.add_argument('-v', '--verbose',
                         help='verbose',
                         action='store_true')
+    parser.add_argument('--version',
+                        action='version',
+                        version='{}'.format(meta.__version__))
     return parser
 
 def parse_args():
