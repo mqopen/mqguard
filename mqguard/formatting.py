@@ -182,10 +182,7 @@ class JSONDevicesInitFormatting(JSONInitFormatting):
     def getGuardsReasons(self, deviceReport):
         """!
         """
-        if deviceReport.hasFailures():
-            return [self.createReason(failures) for failures in deviceReport.getFailures()]
-        else:
-            return None
+        return [self.createReason(failures) for failures in deviceReport.getFailures()]
 
     def createReason(self, changes):
         dataIdentifier, alarm, report = changes
