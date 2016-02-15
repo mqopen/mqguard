@@ -97,7 +97,7 @@ class JSONFormatting:
     def formatDataIdentifier(self, dataIdentifier):
         return {
             "broker": dataIdentifier.broker.name,
-            "dataIdentifier": dataIdentifier.topic}
+            "topic": dataIdentifier.topic}
 
     def formatStatus(self, isInError):
         return ["ok", "error"][int(isInError)]
