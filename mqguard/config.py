@@ -248,11 +248,11 @@ class ProgramConfig:
     def createDataTypeAlarm(self, dataType):
         dt = dataType.lower()
         if dt == "numeric":
-            return DataTypeAlarm.numeric()
+            return NumericAlarm()
         elif dt == "alphanumeric":
-            return DataTypeAlarm.alphanumeric()
+            return AlphabeticAlarm()
         elif dt == "alphabetic":
-            return DataTypeAlarm.alphabetic()
+            return AlphanumericAlarm()
         else:
             raise ConfigException("Unsuppoted alarm type: {}".format(dataType))
 

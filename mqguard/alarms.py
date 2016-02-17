@@ -20,8 +20,8 @@ Module with update alarms.
 from enum import Enum
 import datetime
 
-__all__ = ['FloodingAlarm', 'TimeoutAlarm', 'RangeAlarm', 'ErrorCodesAlarm', 'DataTypeAlarm',
-            'PresenceAlarm']
+__all__ = ['FloodingAlarm', 'TimeoutAlarm', 'RangeAlarm', 'ErrorCodesAlarm',
+            'PresenceAlarm', 'NumericAlarm', 'AlphanumericAlarm', 'AlphabeticAlarm']
 
 class AlarmType(Enum):
     messageDriven = 1
@@ -221,14 +221,40 @@ class ErrorCodesAlarm(BaseAlarm):
             return (False, None)
 
 class DataTypeAlarm(BaseAlarm):
-    def __init__(self, dataFilter):
+
+    def __init__(self):
         BaseAlarm.__init__(self, AlarmType.messageDriven, AlarmPriority.dataType)
-    @classmethod
-    def numeric(cls, additions = []):
-        return cls(None)
-    @classmethod
-    def alphanumeric(cls, additions = []):
-        return cls(None)
-    @classmethod
-    def alphabetic(cls, additions = []):
-        return cls(None)
+
+class NumericAlarm(DataTypeAlarm):
+    """!
+    Check if message is numeric.
+    """
+
+    def checkDecodedMessage(self, dataIdentifier, data):
+        try:
+            num = float(data)
+            return False, None
+        except ValueError as ex:
+            return True, "'{}' can't be decoded as numer".format(data)
+
+class AlphanumericAlarm(DataTypeAlarm):
+    """!
+    Check if message is alphanumeric.
+    """
+
+    def checkDecodedMessage(self, dataIdentifier, data):
+        if data.isalnum():
+            return False, None
+        else:
+            return True, "'{}' isn't alphanumeric".format(data)
+
+class AlphabeticAlarm(DataTypeAlarm):
+    """!
+    Check if message consists from letters only.
+    """
+
+    def checkDecodedMessage(self, dataIdentifier, data):
+        if data.isalpha():
+            return False, None
+        else:
+            return True, "'{}' isn't alphabetic only".format(data)
