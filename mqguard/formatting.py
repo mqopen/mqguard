@@ -125,7 +125,7 @@ class JSONDevicesInitFormatting(JSONInitFormatting):
         return {
             "name": deviceName,
             "description": "Device description not implemented yet",
-            "status": self.formatStatus(deviceReport.hasFailures()),
+            "status": self.formatStatus(deviceReport.hasFailures() or deviceReport.hasPresenceFailure()),
             "presence": self.createPresence(deviceName, deviceGuard),
             "guards": [guard for guard in self.getGuards(deviceGuard)],
             "reasons": self.getReasons(deviceReport)}
@@ -174,7 +174,7 @@ class JSONDevicesInitFormatting(JSONInitFormatting):
         """
         if deviceReport.hasPresenceFailure():
             return {
-                "status": self.formatStatus(True),
+                "status": self.formatStatus(deviceReport.hasPresenceFailure()),
                 "message": deviceReport.getPresenceMessage()}
         else:
             return None
@@ -191,7 +191,7 @@ class JSONDevicesInitFormatting(JSONInitFormatting):
             "guard": self.formatDataIdentifier(dataIdentifier),
             "alarm": "{}".format(alarm.__name__),
             "status": self.formatStatus(active),
-            "message": ["ok", message][int(active)]}
+            "message": self.formatStatus(active)}
 
     def createGuard(self, updateGuard):
         return {
