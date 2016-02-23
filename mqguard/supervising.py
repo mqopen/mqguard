@@ -290,15 +290,19 @@ class UpdateGuard:
         """
         return updateDataIdentifier == self.dataIdentifier
 
+    def getAlarms(self):
+        for alarm in self.messageAlarms:
+            yield alarm
+        for alarm in self.periodicAlarms:
+            yield alarm
+
     def getAlarmClasses(self):
         """!
         Get iterable of all used alarm classes.
 
         @return Iterable of alarm classes
         """
-        for alarm in self.messageAlarms:
-            yield alarm.__class__
-        for alarm in self.periodicAlarms:
+        for alarm in self.getAlarms():
             yield alarm.__class__
 
 class DeviceGuardResult:

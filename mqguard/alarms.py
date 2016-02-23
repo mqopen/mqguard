@@ -79,6 +79,12 @@ class BaseAlarm:
         """
         return (True, "Not implemented")
 
+    def getName(self):
+        return self.__class__.__name__
+
+    def getCriteria(self):
+        return None
+
 class TimedAlarm(BaseAlarm):
     """!
     Time related alarm. Base class.
@@ -97,6 +103,9 @@ class TimedAlarm(BaseAlarm):
 
     def updateMessageTime(self):
         self.lastMessageTime = datetime.datetime.now()
+
+    def getCriteria(self):
+        return "{}s per message".format(self.period.total_seconds())
 
 class FloodingAlarm(TimedAlarm):
     """!
@@ -123,7 +132,7 @@ class FloodingAlarm(TimedAlarm):
                 return (True, "Message flooding, message received after {} seconds".format(delta.total_seconds()))
         else:
             self.updateMessageTime()
-        return (False, None)
+        return False, None
 
 class TimeoutAlarm(TimedAlarm):
     """!
@@ -185,6 +194,9 @@ class RangeAlarm(BaseAlarm):
         except ValueError as ex:
             return (True, "Can't decode value '{}' as a number".format(data))
 
+    def getCriteria(self):
+        return "{} <= x <= {}".format(self.lowerLimit, self.upperLimit)
+
 class PresenceAlarm(BaseAlarm):
     """!
     Checking device presence message.
@@ -200,6 +212,9 @@ class PresenceAlarm(BaseAlarm):
         if data == self.presenceOffline:
             return (True, "Device goes offline")
         return (True, "Unexpected presence message: '{}'".format(data))
+
+    def getCriteria(self):
+        return "U: {}, D: {}".format(self.presenceOnline, self.presenceOffline)
 
 class ErrorCodesAlarm(BaseAlarm):
     """!
@@ -221,6 +236,9 @@ class ErrorCodesAlarm(BaseAlarm):
         else:
             return (False, None)
 
+    def getCriteria(self):
+        return ", ".join(self.errorCodes)
+
 class DataTypeAlarm(BaseAlarm):
 
     def __init__(self):
@@ -238,6 +256,9 @@ class NumericAlarm(DataTypeAlarm):
         except ValueError as ex:
             return True, "'{}' can't be decoded as numer".format(data)
 
+    def getCriteria(self):
+        return "Numbers only"
+
 class AlphanumericAlarm(DataTypeAlarm):
     """!
     Check if message is alphanumeric.
@@ -249,6 +270,9 @@ class AlphanumericAlarm(DataTypeAlarm):
         else:
             return True, "'{}' isn't alphanumeric".format(data)
 
+    def getCriteria(self):
+        return "Alphynumeric characters"
+
 class AlphabeticAlarm(DataTypeAlarm):
     """!
     Check if message consists from letters only.
@@ -259,3 +283,6 @@ class AlphabeticAlarm(DataTypeAlarm):
             return False, None
         else:
             return True, "'{}' isn't alphabetic only".format(data)
+
+    def getCriteria(self):
+        return "Letters only"

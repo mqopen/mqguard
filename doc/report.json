@@ -24,17 +24,16 @@
                     "dataIdentifier": "my-broker:device/topic",
                     "alarms": [
                         {
-                            "alarm": "range",
-                            "lowerLimit": -1,
-                            "upperLimit": 1,
+                            "alarm": "RangeAlarm",
+                            "criteria": "-1 < x < 1"
                         },
                         {
-                            "alarm": "dataType",
-                            "validCharacters": ["a", "b"],
+                            "alarm": "DataTypeAlarm",
+                            "criteria": "Numeric"
                         },
                         {
-                            "alarm": "errorCodes",
-                            "errorCodes": ["E_SYNC", "E_CONN"],
+                            "alarm": "ErrorCodeAlarm",
+                            "criteria": "E_CONN, E_ACK"
                         },
                     ]
                 }

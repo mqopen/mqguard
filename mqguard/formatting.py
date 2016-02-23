@@ -196,15 +196,16 @@ class JSONDevicesInitFormatting(JSONInitFormatting):
     def createGuard(self, updateGuard):
         return {
             "dataIdentifier": self.formatDataIdentifier(updateGuard.dataIdentifier),
-            "alarms": [alarm for alarm in self.getAlarms(updateGuard.getAlarmClasses())]}
+            "alarms": [alarm for alarm in self.getAlarms(updateGuard.getAlarms())]}
 
-    def getAlarms(self, alarmClasses):
-        for alarmClass in alarmClasses:
-            yield self.createAlarm(alarmClass)
+    def getAlarms(self, alarms):
+        for alarm in alarms:
+            yield self.createAlarm(alarm)
 
-    def createAlarm(self, alarmClass):
+    def createAlarm(self, alarm):
         return {
-            "alarm": alarmClass.__name__}
+            "alarm": alarm.getName(),
+            "criteria": alarm.getCriteria()}
 
 class JSONBrokersInitFromatting(JSONInitFormatting):
     """!
