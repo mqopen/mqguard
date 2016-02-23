@@ -57,7 +57,8 @@ class BaseAlarm:
         @param data received bytes.
         """
         try:
-            return self.checkDecodedMessage(dataIdentifier, data.decode("utf-8"))
+            decodedMessage = data.decode("utf-8", "strict")
+            return self.checkDecodedMessage(dataIdentifier, decodedMessage)
         except UnicodeError as ex:
             return (True, "Data decoding error")
 
@@ -136,7 +137,7 @@ class TimeoutAlarm(TimedAlarm):
     def fromSeconds(cls, seconds):
         return cls(datetime.timedelta(seconds = seconds))
 
-    def notifyMessage(self):
+    def notifyMessage(self, dataIdentifier, data):
         self.updateMessageTime()
 
     def checkPeriodic(self):
@@ -191,14 +192,14 @@ class PresenceAlarm(BaseAlarm):
 
     def __init__(self, values):
         BaseAlarm.__init__(self, AlarmType.messageDriven, AlarmPriority.value)
-        self.presenceOnline, self.preseceOffline = values
+        self.presenceOnline, self.presenceOffline = values
 
     def checkDecodedMessage(self, dataIdentifier, data):
         if data == self.presenceOnline:
             return (False, None)
-        if data == self.preseceOffline:
+        if data == self.presenceOffline:
             return (True, "Device goes offline")
-        return (True, "Unexpected presence message: {}".format(data))
+        return (True, "Unexpected presence message: '{}'".format(data))
 
 class ErrorCodesAlarm(BaseAlarm):
     """!
