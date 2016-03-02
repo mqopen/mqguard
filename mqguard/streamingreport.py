@@ -156,7 +156,7 @@ class WebsocketReporter(StreamingReporter):
         self.server.close()
 
     def report(self, deviceReport):
-        if deviceReport.hasChanges():
+        if deviceReport.hasChanges() or deviceReport.hasPresenceUpdate():
             for session in self.sessions:
                 self.loop.call_soon_threadsafe(self.addUpdate, session, deviceReport)
 

@@ -50,18 +50,17 @@ class DeviceRegistry:
         for dataIdentifier in guardAlarms:
             self.alarmStates[device][dataIdentifier] = {}
             for alarmClass in guardAlarms[dataIdentifier]:
-                active = False
-                changed = False
-                updated = False
-                message = None
-                self.alarmStates[device][dataIdentifier][alarmClass] = (
-                    active,
-                    changed,
-                    updated,
-                    message)
-        self.presenceMapping[device] = self.createPresence(device, guard)
+                self.alarmStates[device][dataIdentifier][alarmClass] = self.createAlarmTrack()
+        self.presenceMapping[device] = self.createPresence(guard)
 
-    def createPresence(self, device, guard):
+    def createAlarmTrack(self):
+        active = False
+        changed = False
+        updated = False
+        message = None
+        return active, changed, updated, message
+
+    def createPresence(self, guard):
         active = False
         changed = False
         updated = False
@@ -106,12 +105,12 @@ class DeviceRegistry:
     def updateDevicePresence(self, device, presenceAlarms):
         wasActive, changed, updated, previousMessage =  self.presenceMapping[device]
         for alarm in presenceAlarms:
-            active, message = presenceAlarms[alarm]
+            isActive, message = presenceAlarms[alarm]
             _changed = False
-            if active != wasActive:
+            if isActive != wasActive:
                 _changed = True
             _updated = True
-            self.presenceMapping[device] = (active, _changed, _updated, message)
+            self.presenceMapping[device] = (isActive, _changed, _updated, message)
             break
 
     def clearChanges(self, device):
@@ -119,6 +118,8 @@ class DeviceRegistry:
             for alarm in self.alarmStates[device][dataIdentifier]:
                 active, changed, updated, message = self.alarmStates[device][dataIdentifier][alarm]
                 self.alarmStates[device][dataIdentifier][alarm] = (active, False, False, message)
+        active, changed, updated, message = self.presenceMapping[device]
+        self.presenceMapping[device] = active, False, False, message
 
     def start(self):
         """!
