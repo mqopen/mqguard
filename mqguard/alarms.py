@@ -60,7 +60,7 @@ class BaseAlarm:
             decodedMessage = data.decode("utf-8", "strict")
             return self.checkDecodedMessage(dataIdentifier, decodedMessage)
         except UnicodeError as ex:
-            return (True, "Data decoding error")
+            return True, "Data decoding error"
 
     def notifyMessage(self, dataIdentifier, data):
         """!
@@ -71,13 +71,13 @@ class BaseAlarm:
         """!
         Periodic check.
         """
-        return (True, "Not implemented")
+        return True, "Not implemented"
 
     def checkDecodedMessage(self, dataIdentifier, data):
         """!
         Convenient method. Decode message
         """
-        return (True, "Not implemented")
+        return True, "Not implemented"
 
     def getName(self):
         return self.__class__.__name__
@@ -129,7 +129,7 @@ class FloodingAlarm(TimedAlarm):
             delta = currentTime - self.lastMessageTime
             self.updateMessageTime()
             if delta < self.period:
-                return (True, "Message flooding, message received after {} seconds".format(delta.total_seconds()))
+                return True, "Message flooding, message received after {} seconds".format(delta.total_seconds())
         else:
             self.updateMessageTime()
         return False, None
@@ -154,12 +154,12 @@ class TimeoutAlarm(TimedAlarm):
             currentTime = datetime.datetime.now()
             delta = currentTime - self.lastMessageTime
             if delta > self.period:
-                return (True, "Update timeouted: {} seconds".format(delta.total_seconds()))
+                return True, "Update timeouted: {} seconds".format(delta.total_seconds())
         else:
             # First message is still not received. Update its timestamp. It will trigger
             # alarm in case that it never be received.
             self.updateMessageTime()
-        return (False, None)
+        return False, None
 
 class RangeAlarm(BaseAlarm):
     """!
@@ -187,12 +187,12 @@ class RangeAlarm(BaseAlarm):
         try:
             value = float(data)
             if value < self.lowerLimit:
-                return (True, "Value {} exceeds minimum allowed range ({})".format(value, self.lowerLimit))
+                return True, "Value {} exceeds minimum allowed range ({})".format(value, self.lowerLimit)
             if value > self.upperLimit:
-                return (True, "Value {} exceeds maximum allowed range ({})".format(value, self.upperLimit))
-            return (False, None)
+                return True, "Value {} exceeds maximum allowed range ({})".format(value, self.upperLimit)
+            return False, None
         except ValueError as ex:
-            return (True, "Can't decode value '{}' as a number".format(data))
+            return True, "Can't decode value '{}' as a number".format(data)
 
     def getCriteria(self):
         return "{} <= x <= {}".format(self.lowerLimit, self.upperLimit)
@@ -208,10 +208,10 @@ class PresenceAlarm(BaseAlarm):
 
     def checkDecodedMessage(self, dataIdentifier, data):
         if data == self.presenceOnline:
-            return (False, None)
+            return False, None
         if data == self.presenceOffline:
-            return (True, "Device goes offline")
-        return (True, "Unexpected presence message: '{}'".format(data))
+            return True, "Device goes offline"
+        return True, "Unexpected presence message: '{}'".format(data)
 
     def getCriteria(self):
         return "U: {}, D: {}".format(self.presenceOnline, self.presenceOffline)
@@ -232,9 +232,9 @@ class ErrorCodesAlarm(BaseAlarm):
 
     def checkDecodedMessage(self, dataIdentifier, data):
         if data in self.errorCodes:
-            return (True, "Error code detected: {}".format(data))
+            return True, "Error code detected: {}".format(data)
         else:
-            return (False, None)
+            return False, None
 
     def getCriteria(self):
         return ", ".join(self.errorCodes)
