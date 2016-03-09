@@ -1,4 +1,4 @@
-# mqguard - MQTT monitoring tool
+# mqguard - MQTT traffic diagnostic tool
 
 mqguard is tool for health monitoring and diagnostic of MQTT network. It is able
 to warn user about IoT device errors and provide real time diagnostic service.

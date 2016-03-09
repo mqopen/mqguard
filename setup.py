@@ -15,16 +15,45 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from setuptools import setup, find_packages
-
-from mqguard import meta
+import mqguard
 
 setup(
     name = "mqguard",
-    version = meta.__version__,
-    packages = find_packages(),
-
-    author = meta.__author__,
-    author_email = meta.__email__,
-    description = "MQTT monitoring tool",
-    license = "GPL"
+    url = 'https://github.com/buben19/mqguard',
+    version = mqguard.__version__,
+    packages = find_packages(exclude = ['doc']),
+    install_requires = ['mqreceive>=0.1.0'],
+    author = mqguard.__author__,
+    author_email = mqguard.__email__,
+    description = "MQTT traffic diagnostic tool",
+    long_description = "",
+    license = "GPLv3",
+    classifiers = [
+        'Development Status :: 3 - Alpha',
+        'Environment :: Console',
+        'Environment :: No Input/Output (Daemon)',
+        'Intended Audience :: Customer Service',
+        'Intended Audience :: Information Technology',
+        'Intended Audience :: Other Audience',
+        'Intended Audience :: Telecommunications Industry',
+        'License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)',
+        'Natural Language :: English',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.0',
+        'Programming Language :: Python :: 3.1',
+        'Programming Language :: Python :: 3.2',
+        'Programming Language :: Python :: 3.3',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3 :: Only',
+        'Topic :: Communications',
+        'Topic :: Home Automation',
+        'Topic :: Internet',
+    ],
+    keywords = 'iot internetofthings mqopen mqtt sensors diagnostic',
+    entry_points = {
+        "console_scripts": [
+            "mqguard = mqguard.__main__:main"
+        ]
+    }
 )

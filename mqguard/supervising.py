@@ -197,11 +197,10 @@ class DeviceGuard:
         """!
         Periodic device check.
         """
-        results = []
+        updateGuardMapping = {}
         for updateGuard in self.updateGuards:
-            result = updateGuard.getPeriodicCheck()
-            results.append((updateGuard.dataIdentifier, result))
-        return results
+            alarms = updateGuard.getPeriodicCheck()
+        return DeviceGuardResult(None, updateGuardMapping)
 
     def getGuardAlarms(self):
         """!

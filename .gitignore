@@ -1,1 +1,4 @@
 __pycache__/
+mqguard.egg-info/
+dist/
+build/

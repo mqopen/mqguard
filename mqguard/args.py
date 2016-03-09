@@ -14,8 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import argparse
-
-from mqguard import meta
+import mqguard
 
 class HelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
     def __init__(self, prog, indent_increment=2, max_help_position=64, width=180):
@@ -23,8 +22,8 @@ class HelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
 
 def create_parser():
     parser = argparse.ArgumentParser(
-        description="MQTT monitoring tool v{}".format(meta.__version__),
-        epilog="Copyright (C) {} <{}>".format(meta.__author__, meta.__email__),
+        description="MQTT traffic diagnostic tool v{}".format(mqguard.__version__),
+        epilog="Copyright (C) {} <{}>".format(mqguard.__author__, mqguard.__email__),
         formatter_class=HelpFormatter)
     parser.add_argument('-c', '--config',
                         help='path to configuration file',
@@ -34,7 +33,7 @@ def create_parser():
                         action='store_true')
     parser.add_argument('--version',
                         action='version',
-                        version='{}'.format(meta.__version__))
+                        version='{}'.format(mqguard.__version__))
     return parser
 
 def parse_args():
