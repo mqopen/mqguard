@@ -3,7 +3,21 @@
 mqguard is tool for health monitoring and diagnostic of MQTT network. It is able
 to warn user about IoT device errors and provide real time diagnostic service.
 
+## Install
+
+Right now, mqguard is in development version only. You have to clone this repository and install it manually. Run following command from mqguard directory:
+
+    $ sudo python3 setupy.py install
+
+Alternatively, you can install mqguard in development mode.
+
+    $ sudo pip3 install -e .
+
+You can learn more about [pip development mode](https://packaging.python.org/en/latest/distributing/#working-in-development-mode).
+
 ## Options
+
+mqguard accepts several command line options.
 
  - `-c`, `--config` - Specify configuration file. Default `/etc/mqguard.conf`.
  - `-v`, `--verbose` - Verbose mode.
@@ -12,7 +26,7 @@ to warn user about IoT device errors and provide real time diagnostic service.
 
 ## Configuration
 
-mqguard is configured using configuration file with [INI](https://en.wikipedia.org/wiki/INI_file) format.
+mqguard is configured using configuration file with [INI](https://en.wikipedia.org/wiki/INI_file) format. By default, `/etc/mqguard.conf` is used. You can change this with `-c` or `--config` option to specify alternative path.
 
 ### Configuration file syntax
 
@@ -99,11 +113,11 @@ problems, or provide real time diagnostic information.
  - `Type` - Reporter type.
    - `socket` - TCP/IP socket reporter.
    - `websocket` - Websocket reporter.
-   - `logging` - Logging errors into plain log file or to standard output.
-   - `database` - Log errors into database.
-   - `mail` - Notify error via e-mail.
-   - `sms` - SMS notification.
-   - `trigger` - Execute shell script.
+   - `logging` - Logging errors into plain log file or to standard output.  **_Not implemented yet._**
+   - `database` - Log errors into database. **_Not implemented yet._**
+   - `mail` - Notify error via e-mail. **_Not implemented yet._**
+   - `sms` - SMS notification. **_Not implemented yet._**
+   - `trigger` - Execute shell script. **_Not implemented yet._**
 
 _TODO:_
 
@@ -133,3 +147,7 @@ _TODO:_
 ##### Options for `mail` reporter
 
  - _**TODO**_
+
+## Contributing
+
+If you like this project, you can contribute. Of course :)
