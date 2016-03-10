@@ -9,14 +9,14 @@
    - RangeAlarm - Check numeric range.
    - ErrorCodesAlarm - Check for error codes.
    - DataTypeAlarm - Check for message characters.
-     - numeric
-     - alphanumeric
-     - alphabetic
+     - numeric - Digits only.
+     - alphanumeric - Characters and digits.
+     - alphabetic - Characters only.
    - PresenceAlarm - Check for device presence messages.
  - Implemented reportes:
    - SocketReporter - Plain TCP socket server.
    - WebsocketReporter - Websocket server.
-   - PrintReporter - Log updates into log file.
+   - PrintReporter - Log updates to stdout.
  - Implemented formatters:
    - JSONFormatter - Format data in JSON syntax.
      - Feed types: _init_, _update_.
