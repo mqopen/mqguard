@@ -30,7 +30,18 @@ class DeviceRegistry:
     Group all guarded devices in single registry.
     """
 
+    ## @var reportManager
+    ## @var periodicChecker
+    ## @var guardedDevices
+    ## @var alarmStates
+    ## @var presenceMapping
+
     def __init__(self, reportManager):
+        """!
+        Initiate DeviceRegistry object.
+
+        @param reportManager ReportingManager object.
+        """
         self.reportManager = reportManager
         self.periodicChecker = PeriodicChecker.secondCheck(self, 1)
         self.guardedDevices = {}
@@ -41,6 +52,12 @@ class DeviceRegistry:
         self.reportManager.injectDeviceRegistry(self)
 
     def addGuardedDevice(self, device, guard):
+        """!
+        Register new guarded device.
+
+        @param device Device identifier.
+        @param guard DeviceGuard object.
+        """
         self.guardedDevices[device] = guard
         self.addAlarmTrack(device, guard)
 
@@ -51,26 +68,46 @@ class DeviceRegistry:
             self.alarmStates[device][dataIdentifier] = {}
             for alarmClass in guardAlarms[dataIdentifier]:
                 self.alarmStates[device][dataIdentifier][alarmClass] = self.createAlarmTrack()
-        self.presenceMapping[device] = self.createPresence(guard)
+        self.presenceMapping[device] = self.createPresence(guard.hasPresence())
 
     def createAlarmTrack(self):
+        """!
+        Create initial alarm track tuple.
+
+        @return Initial alarm track tuple.
+        """
         active = False
         changed = False
         updated = False
         message = None
         return active, changed, updated, message
 
-    def createPresence(self, guard):
+    def createPresence(self, hasPresence):
+        """!
+        Create initial presence status tuple.
+
+        @param hasPresence Boolean object indication whether device has configured
+            presence topic. Devices with presence topic set has initial alarm state
+            active, until first presence message is received.
+        @return Initial presence status tuple.
+        """
         active = False
         changed = False
         updated = False
         message = None
-        if guard.hasPresence():
+        if hasPresence:
             active = True
             message = "Online message not received yet"
         return active, changed, updated, message
 
     def onMessage(self, broker, topic, data):
+        """'
+        Message event.
+
+        @param broker Broker object which message came from.
+        @param topic Message topic.
+        @param data Message bytes.
+        """
         dataIdentifier = DataIdentifier(broker, topic)
         for device, deviceGuard in self.guardedDevices.items():
             result = deviceGuard.messageReceived(dataIdentifier, data)
@@ -81,9 +118,12 @@ class DeviceRegistry:
             self.makeReport(device)
 
     def onPeriodic(self):
-        return
+        """!
+        Periodic alarm check.
+        """
         for device, deviceGuard in self.guardedDevices.items():
-            for di, alarms in deviceGuard.onPeriodic():
+            result = deviceGuard.onPeriodic();
+            for di, alarms in result.updateGuardMapping.items():
                 self.setChanges(device, di, alarms)
             self.makeReport(device)
 
@@ -200,6 +240,7 @@ class DeviceGuard:
         updateGuardMapping = {}
         for updateGuard in self.updateGuards:
             alarms = updateGuard.getPeriodicCheck()
+            updateGuardMapping[updateGuard.dataIdentifier] = alarms
         return DeviceGuardResult(None, updateGuardMapping)
 
     def getGuardAlarms(self):
@@ -255,7 +296,7 @@ class UpdateGuard:
 
         @param dataIdentifier DataIdentifier object.
         @param payload MQTT data.
-        @return Tuple with check report. If check is OK: (True, None). If error
+        @return Tuple with check report. If check is OK: (False, None). If error
             is detected: (False, errorMessage).
         """
         alarms = {}
@@ -265,21 +306,19 @@ class UpdateGuard:
             if deactivated:
                 alarms[alarm.__class__] = (False, None)
         for alarm in self.messageAlarms:
-            result = alarm.checkMessage(dataIdentifier, payload)
-            alarms[alarm.__class__] = result
+            alarms[alarm.__class__] = alarm.checkMessage(dataIdentifier, payload)
         return alarms
 
     def getPeriodicCheck(self):
         """!
         Periodic checking for update timeouts.
 
-        @return Tuple with check report. If check is OK: (True, None). If error
+        @return Tuple with check report. If check is OK: (False, None). If error
             is detected: (False, errorMessage).
         """
         alarms = {}
         for alarm in self.periodicAlarms:
-            result = alarm.checkPeriodic()
-            alarms[alarm] = result
+            alarms[alarm.__class__] = alarm.checkPeriodic()
         return alarms
 
     def isUpdateRelevant(self, updateDataIdentifier):
@@ -322,7 +361,18 @@ class PeriodicChecker:
     Separate tread which periodicall invokes onPeriodic() method of DeviceRegistry object.
     """
 
+    ## @var registry
+    ## @var period
+    ## @var event
+    ## @var running
+
     def __init__(self, registry, period):
+        """'
+        Initialize PeriodicChecker object.
+
+        @param registry DeviceRegistry object.
+        @param period timedelta object defining check period.
+        """
         self.registry = registry
         self.period = period
         self.event = threading.Event()
@@ -344,6 +394,7 @@ class PeriodicChecker:
 
     def stop(self):
         """!
+        Stop periodic checker thread.
         """
         self.running = False
         self.event.set()
