@@ -41,3 +41,43 @@ class Device:
 
     def hasPresence(self):
         return self.presence is not None
+
+class DevicePresence:
+    """!
+    Device presence message description object.
+    """
+
+    ## @var dataIdentifier
+    # Presence data identifier.
+
+    ## @var values
+    # Expected presence online and offline values tuple.
+
+    def __init__(self, dataIdentifier, values):
+        """!
+        Initiate DevicePresence object.
+
+        @param dataIdentifier Presence data identifier.
+        @parameters value Expected presence online and offline values tuple.
+            @li Online value
+            @li Offline value
+        """
+        self.dataIdentifier = dataIdentifier
+        self.values = values
+
+    @classmethod
+    def noPresence(cls):
+        """!
+        Create no presence object.
+
+        @return DevicePresence with no presence information.
+        """
+        return cls(None, None)
+
+    def hasPresence(self):
+        """!
+        Check if object contains presence information.
+
+        @return True if object contains presence, False otherwise.
+        """
+        return self.dataIdentifier is not None or self.values is not None

@@ -119,19 +119,3 @@ class DeviceReport:
     def getPresenceMessage(self):
         _, _, _, msg = self.presence
         return msg
-
-class DevicePresence:
-    """!
-    Device presence message description object.
-    """
-
-    def __init__(self, dataIdentifier, values):
-        self.dataIdentifier = dataIdentifier
-        self.values = values
-
-    @classmethod
-    def noPresence(cls):
-        return cls(None, None)
-
-    def hasPresence(self):
-        return self.dataIdentifier is not None or self.values is not None

@@ -22,7 +22,7 @@ from mqguard.alarms import *
 from mqguard.reporting import PrintReporter
 from mqguard.streamingreport import SocketReporter, WebsocketReporter
 from mqguard.formatting import JSONFormatter, SystemDataProvider
-from mqguard.common import DevicePresence
+from mqguard.device import DevicePresence
 
 class ProgramConfig:
     """!
