@@ -145,22 +145,41 @@ class BaseReporter:
         """
         return self.deviceRegistry is not None
 
-class LogReporter(BaseReporter):
-    """!
-    Plain text logs.
-    """
-
 class DatabaseReporter(BaseReporter):
     """!
     Report errors into database.
     """
 
-class PrintReporter(BaseReporter):
+class LineReporter(BaseReporter):
+    """!
+    Base class for line based reporting
+    """
+
+    def report(self, deviceReport):
+        if deviceReport.hasChanges() or deviceReport.hasPresenceUpdate():
+            self.doReport(deviceReport)
+
+    def doReport(self, deviceReport):
+        """!
+        Do report. Override this in subclass.
+        """
+
+class LogReporter(LineReporter):
+    """!
+    Plain text logs.
+    """
+
+class PrintReporter(LineReporter):
     """!
     Debug reporter.
     """
 
     def report(self, deviceReport):
-        print("registerred {} errors:".format(len(result.reasons)))
-        for reason in result.reasons:
-            print("{}{}".format(" " * 2, reason))
+        if deviceReport.hasPresenceUpdate():
+            print(deviceReport.getPresenceMessage())
+        for dataIdentifier, alarm, report in deviceReport.getChanges():
+            active, _, _, message = report
+            if active:
+                print("{}: {}.".format(dataIdentifier.topic, message))
+            else:
+                print("{}: Is OK now.".format(dataIdentifier.topic))

@@ -19,6 +19,7 @@ from mqreceive.broker import Broker
 from mqreceive.data import DataIdentifier
 
 from mqguard.alarms import *
+from mqguard.reporting import PrintReporter
 from mqguard.streamingreport import SocketReporter, WebsocketReporter
 from mqguard.formatting import JSONFormatter, SystemDataProvider
 from mqguard.common import DevicePresence
@@ -329,6 +330,8 @@ class ProgramConfig:
             reporter = self.createSocketReporter(reporterSection)
         elif reporterType == "websocket":
             reporter = self.createWebsocketReporter(reporterSection)
+        elif reporterType == "print":
+            reporter = self.createPrintReporter(reporterSection)
         else:
             raise ConfigException("Unsupported reporter type: {}".format(reporterType))
         return (reporterName, reporterType, reporter)
@@ -345,6 +348,9 @@ class ProgramConfig:
         listenAddress = self.parser.get(reporterSection, "ListenAddress")
         listenPort = self.parser.getint(reporterSection, "ListenPort")
         return WebsocketReporter(None, JSONFormatter(SystemDataProvider()), (listenAddress, listenPort))
+
+    def createPrintReporter(self, reporterSection):
+        return PrintReporter(None)
 
 ### Common #####################################################################
 
