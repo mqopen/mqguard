@@ -1,12 +1,5 @@
 # mqguard TODO list
 
-## Output
-
- - Implement presence message errors in output format.
-
-## Options
-
- - Add `--version` option.
 
 ## Configuration
 
