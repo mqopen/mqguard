@@ -18,6 +18,8 @@ Sending reports.
 """
 
 import threading
+import logging
+import logging.handlers
 
 class ReportingManager:
     """!
@@ -155,6 +157,12 @@ class LineReporter(BaseReporter):
     Base class for line based reporting
     """
 
+    def __init__(self, synchronizer, handler):
+        BaseReporter.__init__(self, synchronizer)
+        self.logger = logging.getLogger("test")
+        self.logger.setLevel(logging.INFO)
+        self.logger.addHandler(handler)
+
     def report(self, deviceReport):
         if deviceReport.hasChanges() or deviceReport.hasPresenceUpdate():
             self.doReport(deviceReport)
@@ -169,17 +177,41 @@ class LogReporter(LineReporter):
     Plain text logs.
     """
 
+    def __init__(self, synchronizer, logfile):
+        LineReporter.__init__(self, synchronizer, self.getLogHandler(logfile))
+        self.logfile = logfile
+
+    def getLogHandler(self, logfile):
+        handler = logging.handlers.TimedRotatingFileHandler(
+            logfile,
+            when='M',
+            interval=1)
+        handler.setLevel(logging.INFO)
+        formatter = logging.Formatter('%(asctime)s %(levelname)s: %(message)s')
+        handler.setFormatter(formatter)
+        return handler
+
 class PrintReporter(LineReporter):
     """!
     Debug reporter.
     """
 
+    def __init__(self, synchronizer):
+        LineReporter.__init__(self, synchronizer, self.getLogHandler())
+
     def report(self, deviceReport):
         if deviceReport.hasPresenceUpdate():
-            print(deviceReport.getPresenceMessage())
+            self.logger.warning(deviceReport.getPresenceMessage())
         for dataIdentifier, alarm, report in deviceReport.getChanges():
             active, _, _, message = report
             if active:
-                print("{}: {}.".format(dataIdentifier.topic, message))
+                self.logger.warning("{}: {}.".format(dataIdentifier.topic, message))
             else:
-                print("{}: Is OK now.".format(dataIdentifier.topic))
+                self.logger.info("{}: Is OK now.".format(dataIdentifier.topic))
+
+    def getLogHandler(self):
+        ch = logging.StreamHandler()
+        ch.setLevel(logging.INFO)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        ch.setFormatter(formatter)
+        return ch

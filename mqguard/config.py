@@ -19,7 +19,7 @@ from mqreceive.broker import Broker
 from mqreceive.data import DataIdentifier
 
 from mqguard.alarms import *
-from mqguard.reporting import PrintReporter
+from mqguard.reporting import PrintReporter, LogReporter
 from mqguard.streamingreport import SocketReporter, WebsocketReporter
 from mqguard.formatting import JSONFormatter, SystemDataProvider
 from mqguard.device import DevicePresence
@@ -332,6 +332,8 @@ class ProgramConfig:
             reporter = self.createWebsocketReporter(reporterSection)
         elif reporterType == "print":
             reporter = self.createPrintReporter(reporterSection)
+        elif reporterType == "log":
+            reporter = self.createLogReporter(reporterSection)
         else:
             raise ConfigException("Unsupported reporter type: {}".format(reporterType))
         return (reporterName, reporterType, reporter)
@@ -340,17 +342,24 @@ class ProgramConfig:
         """!
         Create socket reporter.
         """
-        listenAddress = self.parser.get(reporterSection, "ListenAddress")
-        listenPort = self.parser.getint(reporterSection, "ListenPort")
-        return SocketReporter(None, JSONFormatter(SystemDataProvider()), (listenAddress, listenPort))
+        listenAddress = self.getListenAddress(reporterSection)
+        return SocketReporter(None, JSONFormatter(SystemDataProvider()), listenAddress)
 
     def createWebsocketReporter(self, reporterSection):
+        listenAddress = self.getListenAddress(reporterSection)
+        return WebsocketReporter(None, JSONFormatter(SystemDataProvider()), listenAddress)
+
+    def getListenAddress(self, reporterSection):
         listenAddress = self.parser.get(reporterSection, "ListenAddress")
         listenPort = self.parser.getint(reporterSection, "ListenPort")
-        return WebsocketReporter(None, JSONFormatter(SystemDataProvider()), (listenAddress, listenPort))
+        return listenAddress, listenPort
 
     def createPrintReporter(self, reporterSection):
         return PrintReporter(None)
+
+    def createLogReporter(self, reporterSection):
+        logfile = self.parser.get(reporterSection, "File")
+        return LogReporter(None, logfile);
 
 ### Common #####################################################################
 
