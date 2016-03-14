@@ -22,7 +22,9 @@ setup(
     url = 'https://github.com/buben19/mqguard',
     version = mqguard.__version__,
     packages = find_packages(exclude = ['doc']),
-    install_requires = ['mqreceive>=0.1.0'],
+    install_requires = [
+        'mqreceive>=0.1.0',
+        'websockets>=2.6'],
     author = mqguard.__author__,
     author_email = mqguard.__email__,
     description = "MQTT traffic diagnostic tool",
