@@ -2,7 +2,7 @@
  * Example of JSON report.
  */
 
-// Initial data
+/* Initial data */
 {
     "feed": "init",
     "devices": [
@@ -10,18 +10,25 @@
             "name": "test-device",
             "description": null,
 
-            // Current device status. Values: "ok"|"error"
+            /* Current device status. Values: "ok"|"error". */
             "status": "ok",
             "reasons": null,
             "presence": {
+                /* Is presence is't enabled, other values don't have to be defined. */
                 "isEnabled": true,
-                "dataIdentifier": "broker-name:device/presence/topic",
+                "dataIdentifier": {
+                    "broker": "broker-name",
+                    "topic": "device/presence/topic"
+                },
                 "onlineMessage": "online",
                 "offlineMessage": "offline"
             },
             "guards": [
                 {
-                    "dataIdentifier": "my-broker:device/topic",
+                    "dataIdentifier": {
+                        "broker": "my-broker",
+                        "topic": "device/topic"
+                    },
                     "alarms": [
                         {
                             "alarm": "RangeAlarm",
@@ -46,17 +53,17 @@
             "host": "localhost",
             "port": 1883,
             "subscriptions": ["#"],
-            // False is broker requires credentials.
+            /* False if broker requires credentials. */
             "public": false,
-            // Broker connection status. Values: "ok"|"disconnected"
+            /* Broker connection status. Values: "ok"|"disconnected". */
             "status": "ok",
-            // Broker connection status message.
+            /* Broker connection status message. */
             "message": "ok",
         },
     ],
 }
 
-// Update
+/* Update */
 {
     "feed": "update",
     "devices": [
@@ -71,7 +78,10 @@
                 },
                 "guards": [
                     {
-                        "guard": "my-broker:device/topic",
+                        "guard": {
+                            "broker": "my-broker",
+                            "topic": "device/topic"
+                        },
                         "alarm": "range",
                         "status": "error",
                         "message": "Data out of range"
@@ -86,5 +96,5 @@
             "status": "disconnected",
             "message": "Timed out"
         }
-    ],
+    ]
 }
