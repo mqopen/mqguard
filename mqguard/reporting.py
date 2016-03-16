@@ -157,20 +157,26 @@ class LineReporter(BaseReporter):
     Base class for line based reporting
     """
 
-    def __init__(self, synchronizer, handler):
+    def __init__(self, synchronizer, logger):
         BaseReporter.__init__(self, synchronizer)
-        self.logger = logging.getLogger("test")
-        self.logger.setLevel(logging.INFO)
-        self.logger.addHandler(handler)
+        self.logger = logger
 
     def report(self, deviceReport):
         if deviceReport.hasChanges() or deviceReport.hasPresenceUpdate():
             self.doReport(deviceReport)
 
     def doReport(self, deviceReport):
-        """!
-        Do report. Override this in subclass.
-        """
+        if deviceReport.hasPresenceUpdate():
+            self.logger.warning(deviceReport.getPresenceMessage())
+        for dataIdentifier, alarm, report in deviceReport.getChanges():
+            active, _, _, message = report
+            if not active:
+                message = "Is OK now"
+            self.logger.warning("{} {} {} \"{}\"".format(
+                dataIdentifier.broker.name,
+                dataIdentifier.topic,
+                alarm.__name__,
+                message))
 
 class LogReporter(LineReporter):
     """!
@@ -178,40 +184,36 @@ class LogReporter(LineReporter):
     """
 
     def __init__(self, synchronizer, logfile):
-        LineReporter.__init__(self, synchronizer, self.getLogHandler(logfile))
+        LineReporter.__init__(self, synchronizer, self.createLogger(logfile))
         self.logfile = logfile
 
-    def getLogHandler(self, logfile):
+    def createLogger(self, logfile):
+        logger = logging.getLogger(self.__class__.__name__)
+        logger.setLevel(logging.INFO)
         handler = logging.handlers.TimedRotatingFileHandler(
             logfile,
-            when='M',
+            when="M",
             interval=1)
         handler.setLevel(logging.INFO)
-        formatter = logging.Formatter('%(asctime)s %(levelname)s: %(message)s')
+        formatter = logging.Formatter("%(asctime)s %(message)s")
         handler.setFormatter(formatter)
-        return handler
+        logger.addHandler(handler)
+        return logger
 
 class PrintReporter(LineReporter):
     """!
-    Debug reporter.
+    Print messages to stdout.
     """
 
     def __init__(self, synchronizer):
-        LineReporter.__init__(self, synchronizer, self.getLogHandler())
+        LineReporter.__init__(self, synchronizer, self.createLogger())
 
-    def report(self, deviceReport):
-        if deviceReport.hasPresenceUpdate():
-            self.logger.warning(deviceReport.getPresenceMessage())
-        for dataIdentifier, alarm, report in deviceReport.getChanges():
-            active, _, _, message = report
-            if active:
-                self.logger.warning("{}: {}.".format(dataIdentifier.topic, message))
-            else:
-                self.logger.info("{}: Is OK now.".format(dataIdentifier.topic))
-
-    def getLogHandler(self):
+    def createLogger(self):
+        logger = logging.getLogger(self.__class__.__name__)
+        logger.setLevel(logging.INFO)
         ch = logging.StreamHandler()
         ch.setLevel(logging.INFO)
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        formatter = logging.Formatter("%(message)s")
         ch.setFormatter(formatter)
-        return ch
+        logger.addHandler(ch)
+        return logger
