@@ -20,7 +20,7 @@ from mqreceive.data import DataIdentifier
 
 from mqguard.alarms import *
 from mqguard.reporting import PrintReporter, LogReporter
-from mqguard.streamingreport import SocketReporter, WebsocketReporter
+from mqguard.streamreporting import SocketReporter, WebsocketReporter
 from mqguard.formatting import JSONFormatter, SystemDataProvider
 from mqguard.device import DevicePresence
 
