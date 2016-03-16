@@ -1,12 +1,12 @@
 # mqguard log format
 
-    %d %t %b %t %a %m
+    %d %t %B %T %A %M
 
 Where:
 
  - `%d` - Date.
  - `%t` - Time.
- - `%b` - Name of broker which delivers a message.
- - `%t` - MQTT topic.
- - `%a` - Alarm name.
- - `%m` - Alarm message.
+ - `%B` - Name of broker which delivers a message.
+ - `%T` - MQTT topic.
+ - `%A` - Alarm name.
+ - `%M` - Alarm message.
