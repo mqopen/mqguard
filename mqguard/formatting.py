@@ -189,7 +189,7 @@ class JSONDevicesInitFormatting(JSONInitFormatting):
         active, changed, updated, message = report
         return {
             "guard": self.formatDataIdentifier(dataIdentifier),
-            "alarm": "{}".format(alarm.__name__),
+            "alarm": "{}".format(alarm.getName()),
             "status": self.formatStatus(active),
             "message": self.formatStatus(active)}
 
@@ -266,6 +266,6 @@ class JSONDevicesUpdateFormatting(JSONUpdateFormatting):
         active, changed, updated, message = report
         return {
             "guard": self.formatDataIdentifier(dataIdentifier),
-            "alarm": "{}".format(alarm.__name__),
+            "alarm": "{}".format(alarm.getName()),
             "status": self.formatStatus(active),
             "message": ["ok", message][int(active)]}

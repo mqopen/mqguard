@@ -33,8 +33,12 @@ class DeviceRegistry:
     ## @var reportManager
     ## @var periodicChecker
     ## @var guardedDevices
-    ## @var alarmStates
+
+    ## @var alarmMapping
+    # Mapping device : DataIdentifier : alarm : alarmTrack
+
     ## @var presenceMapping
+    # Mapping device : presenceTrack
 
     def __init__(self, reportManager):
         """!
@@ -45,7 +49,7 @@ class DeviceRegistry:
         self.reportManager = reportManager
         self.periodicChecker = PeriodicChecker.secondCheck(self, 1)
         self.guardedDevices = {}
-        self.alarmStates = {}
+        self.alarmMapping = {}
         self.presenceMapping = {}
 
         # Inject device registry to all reporters.
@@ -62,12 +66,12 @@ class DeviceRegistry:
         self.addAlarmTrack(device, guard)
 
     def addAlarmTrack(self, device, guard):
-        self.alarmStates[device] = {}
+        self.alarmMapping[device] = {}
         guardAlarms = guard.getGuardAlarms()
         for dataIdentifier in guardAlarms:
-            self.alarmStates[device][dataIdentifier] = {}
-            for alarmClass in guardAlarms[dataIdentifier]:
-                self.alarmStates[device][dataIdentifier][alarmClass] = self.createAlarmTrack()
+            self.alarmMapping[device][dataIdentifier] = {}
+            for alarm in guardAlarms[dataIdentifier]:
+                self.alarmMapping[device][dataIdentifier][alarm] = self.createAlarmTrack()
         self.presenceMapping[device] = self.createPresence(guard.hasPresence())
 
     def createAlarmTrack(self):
@@ -135,12 +139,12 @@ class DeviceRegistry:
     def setChanges(self, device, dataIdentifier, alarms):
         for alarm in alarms:
             active, message = alarms[alarm]
-            wasActive, changed, updated, previousMessage = self.alarmStates[device][dataIdentifier][alarm]
+            wasActive, changed, updated, previousMessage = self.alarmMapping[device][dataIdentifier][alarm]
             _changed = False
             if active != wasActive:
                 _changed = True
             _updated = True
-            self.alarmStates[device][dataIdentifier][alarm] = (active, _changed, _updated, message)
+            self.alarmMapping[device][dataIdentifier][alarm] = (active, _changed, _updated, message)
 
     def updateDevicePresence(self, device, presenceAlarms):
         wasActive, changed, updated, previousMessage =  self.presenceMapping[device]
@@ -154,10 +158,10 @@ class DeviceRegistry:
             break
 
     def clearChanges(self, device):
-        for dataIdentifier in self.alarmStates[device]:
-            for alarm in self.alarmStates[device][dataIdentifier]:
-                active, changed, updated, message = self.alarmStates[device][dataIdentifier][alarm]
-                self.alarmStates[device][dataIdentifier][alarm] = (active, False, False, message)
+        for dataIdentifier in self.alarmMapping[device]:
+            for alarm in self.alarmMapping[device][dataIdentifier]:
+                active, changed, updated, message = self.alarmMapping[device][dataIdentifier][alarm]
+                self.alarmMapping[device][dataIdentifier][alarm] = (active, False, False, message)
         active, changed, updated, message = self.presenceMapping[device]
         self.presenceMapping[device] = active, False, False, message
 
@@ -173,13 +177,13 @@ class DeviceRegistry:
 
     def getDeviceReports(self):
         reports = {}
-        for device in self.alarmStates:
+        for device in self.alarmMapping:
             reports[device] = self.getReport(device)
         return reports
 
     def getReport(self, device):
         presence = copy.deepcopy(self.presenceMapping[device])
-        alarms = copy.deepcopy(self.alarmStates[device])
+        alarms = copy.deepcopy(self.alarmMapping[device])
         return DeviceReport(device, presence, alarms)
 
 class DeviceGuard:
@@ -221,7 +225,7 @@ class DeviceGuard:
         """!
         New message was received.
 
-        @return Mapping of DataIdentifier: alarmStates.
+        @return Mapping of DataIdentifier: alarmMapping.
         """
         updateGuardMapping = {}
         presenceAlarms = None
@@ -245,11 +249,11 @@ class DeviceGuard:
 
     def getGuardAlarms(self):
         """!
-        Get mapping of DataIdentifier: Alarm class iterable.
+        Get mapping of DataIdentifier: Alarm iterable.
         """
         alarms = {}
         for updateGuard in self.updateGuards:
-            alarms[updateGuard.dataIdentifier] = updateGuard.getAlarmClasses()
+            alarms[updateGuard.dataIdentifier] = updateGuard.getAlarms()
         return alarms
 
 class UpdateGuard:
@@ -304,9 +308,9 @@ class UpdateGuard:
         for alarm in self.periodicAlarms:
             deactivated = alarm.notifyMessage(dataIdentifier, payload)
             if deactivated:
-                alarms[alarm.__class__] = (False, None)
+                alarms[alarm] = (False, None)
         for alarm in self.messageAlarms:
-            alarms[alarm.__class__] = alarm.checkMessage(dataIdentifier, payload)
+            alarms[alarm] = alarm.checkMessage(dataIdentifier, payload)
         return alarms
 
     def getPeriodicCheck(self):
@@ -318,7 +322,7 @@ class UpdateGuard:
         """
         alarms = {}
         for alarm in self.periodicAlarms:
-            alarms[alarm.__class__] = alarm.checkPeriodic()
+            alarms[alarm] = alarm.checkPeriodic()
         return alarms
 
     def isUpdateRelevant(self, updateDataIdentifier):
@@ -334,15 +338,6 @@ class UpdateGuard:
             yield alarm
         for alarm in self.periodicAlarms:
             yield alarm
-
-    def getAlarmClasses(self):
-        """!
-        Get iterable of all used alarm classes.
-
-        @return Iterable of alarm classes
-        """
-        for alarm in self.getAlarms():
-            yield alarm.__class__
 
 class DeviceGuardResult:
     """!
