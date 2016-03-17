@@ -125,7 +125,7 @@ class JSONDevicesInitFormatting(JSONInitFormatting):
         return {
             "name": deviceName,
             "description": "Device description not implemented yet",
-            "status": self.formatStatus(deviceReport.hasFailures() or deviceReport.hasPresenceFailure()),
+            "status": self.formatStatus(deviceReport.hasFailures()),
             "presence": self.createPresence(deviceName, deviceGuard),
             "guards": [guard for guard in self.getGuards(deviceGuard)],
             "reasons": self.getReasons(deviceReport)}
@@ -172,11 +172,12 @@ class JSONDevicesInitFormatting(JSONInitFormatting):
     def getPresenceReason(self, deviceReport):
         """!
         """
-        if deviceReport.hasPresenceFailure():
+        hasPresenceFailure = deviceReport.hasPresenceFailure();
+        if hasPresenceFailure:
             devicePresence, track = deviceReport.getPresence()
             _, _, _, msg = track
             return {
-                "status": self.formatStatus(deviceReport.hasPresenceFailure()),
+                "status": self.formatStatus(hasPresenceFailure),
                 "message": msg}
         else:
             return None
@@ -184,7 +185,7 @@ class JSONDevicesInitFormatting(JSONInitFormatting):
     def getGuardsReasons(self, deviceReport):
         """!
         """
-        return [self.createReason(failures) for failures in deviceReport.getFailures()]
+        return [self.createReason(failures) for failures in deviceReport.getAlarmFailures()]
 
     def createReason(self, changes):
         dataIdentifier, alarm, report = changes
@@ -263,7 +264,7 @@ class JSONDevicesUpdateFormatting(JSONUpdateFormatting):
             return None
 
     def createGuardsReasons(self, deviceReport):
-        return [self.createGuardsReason(reason) for reason in deviceReport.getChanges()]
+        return [self.createGuardsReason(reason) for reason in deviceReport.getAlarmChanges()]
 
     def createGuardsReason(self, change):
         dataIdentifier, alarm, report = change

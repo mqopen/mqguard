@@ -84,7 +84,7 @@ class SocketReporter(StreamingReporter):
         self.sessions.remove(session)
 
     def report(self, deviceReport):
-        if deviceReport.hasChanges():
+        if deviceReport.hasAlarmChanges() or deviceReport.hasPresenceUpdate():
             for session in self.sessions:
                 session.update(deviceReport)
 
@@ -156,7 +156,7 @@ class WebsocketReporter(StreamingReporter):
         self.server.close()
 
     def report(self, deviceReport):
-        if deviceReport.hasChanges() or deviceReport.hasPresenceUpdate():
+        if deviceReport.hasAlarmChanges() or deviceReport.hasPresenceUpdate():
             for session in self.sessions:
                 self.loop.call_soon_threadsafe(self.addUpdate, session, deviceReport)
 

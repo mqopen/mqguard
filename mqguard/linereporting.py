@@ -27,10 +27,6 @@ class LineReporter(BaseReporter):
         self.logger = logger
 
     def report(self, deviceReport):
-        if deviceReport.hasChanges() or deviceReport.hasPresenceUpdate():
-            self.doReport(deviceReport)
-
-    def doReport(self, deviceReport):
         if deviceReport.hasPresenceUpdate():
             self.reportPresence(deviceReport)
         self.reportGuards(deviceReport)
@@ -55,7 +51,7 @@ class LineReporter(BaseReporter):
 
         @param deviceReport DeviceReport object.
         """
-        for dataIdentifier, alarm, report in deviceReport.getChanges():
+        for dataIdentifier, alarm, report in deviceReport.getAlarmChanges():
             active, _, _, message = report
             if not active:
                 message = "Is OK now"
