@@ -13,8 +13,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import pprint
-
 class GeographicPosition:
     def __init__(self, latitude, longitude):
         self.latitude = latitude
@@ -22,25 +20,39 @@ class GeographicPosition:
 
 class DeviceReport:
     """!
+    Device alarm report.
     """
 
-    def __init__(self, device, presence, alarmStates):
+    ## @var device
+    # Device identifier.
+
+    ## @var presence
+    # Presence description tuple.
+    #   @li DevicePresence object.
+    #   @li Presence status tuple.
+    #       @li Is presence alarm active flag.
+    #       @li Is presence alarm changed flag.
+    #       @li Is presence alarm updated flag.
+    #       @li Presence alarm message.
+
+    ## @var alarmMapping
+
+    def __init__(self, device, presence, alarmMapping):
         self.device = device
         self.presence = presence
-        self.alarmStates = alarmStates
+        self.alarmMapping = alarmMapping
         (self._hasChanges,
             self._hasUpdates,
-            self._hasFailures,
-            self._hasPresenceChange,
+            self._hasFailures) = self.createUpdateFlags()
+        (self._hasPresenceChange,
             self._hasPresenceUpdate,
-            self._hasPresenceFailure) = self.createFlags()
+            self._hasPresenceFailure) = self.createPresenceFlags()
 
-    def createFlags(self):
+    def createUpdateFlags(self):
         hasChanges = False
         hasUpdates = False
         hasFailures = False
-        hasPresenceFailure, hasPresenceChange, hasPresenceUpdate, _ = self.presence
-        for alarmMapping in self.alarmStates.values():
+        for alarmMapping in self.alarmMapping.values():
             for active, changed, updated, message in alarmMapping.values():
                 if active:
                     hasFailures = True
@@ -49,8 +61,13 @@ class DeviceReport:
                 if updated:
                     hasUpdates = True
                 if hasFailures and hasUpdates and hasChanges:
-                    return hasChanges, hasUpdates, hasFailures, hasPresenceChange, hasPresenceUpdate, hasPresenceFailure
-        return hasChanges, hasUpdates, hasFailures, hasPresenceChange, hasPresenceUpdate, hasPresenceFailure
+                    return hasChanges, hasUpdates, hasFailures
+        return hasChanges, hasUpdates, hasFailures
+
+    def createPresenceFlags(self):
+        devicePresence, presenceStatus = self.presence
+        hasPresenceFailure, hasPresenceChange, hasPresenceUpdate, _ = presenceStatus
+        return hasPresenceChange, hasPresenceUpdate, hasPresenceFailure
 
     def hasChanges(self):
         """!
@@ -79,9 +96,9 @@ class DeviceReport:
     def getReport(self):
         """!
         """
-        for dataIdentifier in self.alarmStates:
-            for alarm in self.alarmStates[dataIdentifier]:
-                report = self.alarmStates[dataIdentifier][alarm]
+        for dataIdentifier in self.alarmMapping:
+            for alarm in self.alarmMapping[dataIdentifier]:
+                report = self.alarmMapping[dataIdentifier][alarm]
                 yield dataIdentifier, alarm, report
 
     def getChanges(self):
@@ -116,6 +133,5 @@ class DeviceReport:
                 self.hasChanges(),
                 self.hasUpdates())
 
-    def getPresenceMessage(self):
-        _, _, _, msg = self.presence
-        return msg
+    def getPresence(self):
+        return self.presence

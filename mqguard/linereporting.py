@@ -32,7 +32,29 @@ class LineReporter(BaseReporter):
 
     def doReport(self, deviceReport):
         if deviceReport.hasPresenceUpdate():
-            self.logger.warning(deviceReport.getPresenceMessage())
+            self.reportPresence(deviceReport)
+        self.reportGuards(deviceReport)
+
+    def reportPresence(self, deviceReport):
+        """!
+        Report presence update.
+
+        @param deviceReport DeviceReport object.
+        """
+        devicePresence, track = deviceReport.getPresence()
+        _, _, _, msg = track
+        presenceDataIdentifier = devicePresence.getDataIdentifier()
+        self.logger.warning("{} {} Presence \"{}\"".format(
+            presenceDataIdentifier.broker.name,
+            presenceDataIdentifier.topic,
+            msg))
+
+    def reportGuards(self, deviceReport):
+        """!
+        Report alarm changes.
+
+        @param deviceReport DeviceReport object.
+        """
         for dataIdentifier, alarm, report in deviceReport.getChanges():
             active, _, _, message = report
             if not active:

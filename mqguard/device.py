@@ -81,3 +81,11 @@ class DevicePresence:
         @return True if object contains presence, False otherwise.
         """
         return self.dataIdentifier is not None or self.values is not None
+
+    def getDataIdentifier(self):
+        """!
+        Get device presence data identifier.
+
+        @return device presence DataIdentifier object.
+        """
+        return self.dataIdentifier

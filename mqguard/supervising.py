@@ -72,7 +72,7 @@ class DeviceRegistry:
             self.alarmMapping[device][dataIdentifier] = {}
             for alarm in guardAlarms[dataIdentifier]:
                 self.alarmMapping[device][dataIdentifier][alarm] = self.createAlarmTrack()
-        self.presenceMapping[device] = self.createPresence(guard.hasPresence())
+        self.presenceMapping[device] = self.createPresence(guard)
 
     def createAlarmTrack(self):
         """!
@@ -86,7 +86,15 @@ class DeviceRegistry:
         message = None
         return active, changed, updated, message
 
-    def createPresence(self, hasPresence):
+    def createPresence(self, guard):
+        """
+        Create presence track object.
+        """
+        devicePresence = guard.getPresence()
+        track = self.createPresenceTrack(guard.hasPresence())
+        return devicePresence, track
+
+    def createPresenceTrack(self, hasPresence):
         """!
         Create initial presence status tuple.
 
@@ -101,7 +109,7 @@ class DeviceRegistry:
         message = None
         if hasPresence:
             active = True
-            message = "Online message not received yet"
+            message = "Presence message not received yet"
         return active, changed, updated, message
 
     def onMessage(self, broker, topic, data):
@@ -147,14 +155,16 @@ class DeviceRegistry:
             self.alarmMapping[device][dataIdentifier][alarm] = (active, _changed, _updated, message)
 
     def updateDevicePresence(self, device, presenceAlarms):
-        wasActive, changed, updated, previousMessage =  self.presenceMapping[device]
+        devicePresence, track = self.presenceMapping[device]
+        wasActive, changed, updated, previousMessage = track
         for alarm in presenceAlarms:
             isActive, message = presenceAlarms[alarm]
             _changed = False
             if isActive != wasActive:
                 _changed = True
             _updated = True
-            self.presenceMapping[device] = (isActive, _changed, _updated, message)
+            track = isActive, _changed, _updated, message
+            self.presenceMapping[device] = devicePresence, track
             break
 
     def clearChanges(self, device):
@@ -162,8 +172,10 @@ class DeviceRegistry:
             for alarm in self.alarmMapping[device][dataIdentifier]:
                 active, changed, updated, message = self.alarmMapping[device][dataIdentifier][alarm]
                 self.alarmMapping[device][dataIdentifier][alarm] = (active, False, False, message)
-        active, changed, updated, message = self.presenceMapping[device]
-        self.presenceMapping[device] = active, False, False, message
+        devicePresence, track = self.presenceMapping[device]
+        active, changed, updated, message = track
+        track = active, False, False, message
+        self.presenceMapping[device] = devicePresence, track
 
     def start(self):
         """!
@@ -208,6 +220,9 @@ class DeviceGuard:
     def addPresenceGuard(self, presence, presenceGuard):
         """
         Add check for presence message.
+
+        @param presence DevicePresence object.
+        @param presenceGuard Presence UpdateGuard object.
         """
         self.presence = presence
         self.presenceGuard = presenceGuard
@@ -255,6 +270,14 @@ class DeviceGuard:
         for updateGuard in self.updateGuards:
             alarms[updateGuard.dataIdentifier] = updateGuard.getAlarms()
         return alarms
+
+    def getPresence(self):
+        """
+        Get presence object.
+
+        @return DevicePresence object.
+        """
+        return self.presence
 
 class UpdateGuard:
     """!
@@ -329,11 +352,17 @@ class UpdateGuard:
         """!
         Check if update is relevant to this update guard.
 
+        @param updateDataIdentifier Update DataIdentifier object.
         @return True if relevant, False otherwise.
         """
         return updateDataIdentifier == self.dataIdentifier
 
     def getAlarms(self):
+        """!
+        Get all registered alarms.
+
+        @return Alarms iterable.
+        """
         for alarm in self.messageAlarms:
             yield alarm
         for alarm in self.periodicAlarms:

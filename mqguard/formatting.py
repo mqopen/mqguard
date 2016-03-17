@@ -140,7 +140,7 @@ class JSONDevicesInitFormatting(JSONInitFormatting):
 
     def createEnabledPresence(self, deviceName, deviceGuard):
         diStr = self.formatDataIdentifier(deviceGuard.presence.dataIdentifier)
-        online, offline = deviceGuard.presence.values
+        online, offline = deviceGuard.getPresence().values
         return {
             "isEnabled": True,
             "dataIdentifier": diStr,
@@ -173,9 +173,11 @@ class JSONDevicesInitFormatting(JSONInitFormatting):
         """!
         """
         if deviceReport.hasPresenceFailure():
+            devicePresence, track = deviceReport.getPresence()
+            _, _, _, msg = track
             return {
                 "status": self.formatStatus(deviceReport.hasPresenceFailure()),
-                "message": deviceReport.getPresenceMessage()}
+                "message": msg}
         else:
             return None
 
@@ -252,9 +254,11 @@ class JSONDevicesUpdateFormatting(JSONUpdateFormatting):
 
     def createPresenceReason(self, deviceReport):
         if deviceReport.hasPresenceUpdate():
+            devicePresence, track = deviceReport.getPresence()
+            _, _, _, msg = track
             return {
                 "status": self.formatStatus(deviceReport.hasPresenceFailure()),
-                "message": deviceReport.getPresenceMessage()}
+                "message": msg}
         else:
             return None
 
