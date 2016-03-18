@@ -66,6 +66,12 @@ class DeviceRegistry:
         self.addAlarmTrack(device, guard)
 
     def addAlarmTrack(self, device, guard):
+        """!
+        Add guarded device into alarmMapping object and initialize presenceMapping object.
+
+        @param device Device identifier.
+        @param guard DeviceGuard object.
+        """
         self.alarmMapping[device] = {}
         guardAlarms = guard.getGuardAlarms()
         for dataIdentifier in guardAlarms:
@@ -140,6 +146,11 @@ class DeviceRegistry:
             self.makeReport(device)
 
     def makeReport(self, device):
+        """!
+        Notify report manager with new report. After that clear all changes for the device.
+
+        @param device Reported device.
+        """
         report = self.getReport(device)
         self.reportManager.report(report)
         self.clearChanges(device)
@@ -194,6 +205,12 @@ class DeviceRegistry:
         return reports
 
     def getReport(self, device):
+        """!
+        Create report object for device.
+
+        @param device Reported device.
+        @return DeviceReport object.
+        """
         presence = copy.deepcopy(self.presenceMapping[device])
         alarms = copy.deepcopy(self.alarmMapping[device])
         return DeviceReport(device, presence, alarms)

@@ -211,7 +211,7 @@ class PresenceAlarm(BaseAlarm):
             return False, None
         if data == self.presenceOffline:
             return True, "Device goes offline"
-        return True, "Unexpected presence message: '{}'".format(data)
+        return True, "Unexpected presence message: {}".format(repr(data))
 
     def getCriteria(self):
         return "U: {}, D: {}".format(self.presenceOnline, self.presenceOffline)
