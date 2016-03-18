@@ -60,7 +60,8 @@ class BaseAlarm:
             decodedMessage = data.decode("utf-8", "strict")
             return self.checkDecodedMessage(dataIdentifier, decodedMessage)
         except UnicodeError as ex:
-            return True, "Data decoding error"
+            return True, "Can't decode incomming data: {}".format(
+                " ".join("{}".format(hex(c)) for c in data))
 
     def notifyMessage(self, dataIdentifier, data):
         """!
