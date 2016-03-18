@@ -194,7 +194,7 @@ class JSONDevicesInitFormatting(JSONInitFormatting):
             "guard": self.formatDataIdentifier(dataIdentifier),
             "alarm": "{}".format(alarm.getName()),
             "status": self.formatStatus(active),
-            "message": self.formatStatus(active)}
+            "message": message}
 
     def createGuard(self, updateGuard):
         return {
