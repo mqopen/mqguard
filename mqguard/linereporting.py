@@ -23,10 +23,19 @@ class LineReporter(BaseReporter):
     """
 
     def __init__(self, synchronizer, logger):
+        """!
+        Initialize line reporter object.
+
+        @param synchronizer
+        @param logger Logger object.
+        """
         BaseReporter.__init__(self, synchronizer)
         self.logger = logger
 
     def report(self, deviceReport):
+        """!
+        @copydoc BaseReporter::report()
+        """
         if deviceReport.hasPresenceUpdate():
             self.reportPresence(deviceReport)
         self.reportGuards(deviceReport)
@@ -67,10 +76,22 @@ class LogReporter(LineReporter):
     """
 
     def __init__(self, synchronizer, logfile):
+        """!
+        Initialize log reporter object.
+
+        @param synchronizer
+        @param logfile Path to log file.
+        """
         LineReporter.__init__(self, synchronizer, self.createLogger(logfile))
         self.logfile = logfile
 
     def createLogger(self, logfile):
+        """!
+        Create logger object.
+
+        @param logfile Path to log file.
+        @return Logger object.
+        """
         logger = logging.getLogger(self.__class__.__name__)
         logger.setLevel(logging.INFO)
         handler = logging.handlers.TimedRotatingFileHandler(
@@ -89,9 +110,19 @@ class PrintReporter(LineReporter):
     """
 
     def __init__(self, synchronizer):
+        """!
+        Initialize print reporter object.
+
+        @param synchronizer
+        """
         LineReporter.__init__(self, synchronizer, self.createLogger())
 
     def createLogger(self):
+         """!
+        Create logger object.
+
+        @return Logger object.
+        """
         logger = logging.getLogger(self.__class__.__name__)
         logger.setLevel(logging.INFO)
         ch = logging.StreamHandler()
