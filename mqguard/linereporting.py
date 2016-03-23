@@ -118,7 +118,7 @@ class PrintReporter(LineReporter):
         LineReporter.__init__(self, synchronizer, self.createLogger())
 
     def createLogger(self):
-         """!
+        """!
         Create logger object.
 
         @return Logger object.
