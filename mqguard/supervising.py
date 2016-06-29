@@ -118,15 +118,13 @@ class DeviceRegistry:
             message = "Presence message not received yet"
         return active, changed, updated, message
 
-    def onMessage(self, broker, topic, data):
+    def onNewData(self, dataIdentifier, data):
         """'
         Message event.
 
-        @param broker Broker object which message came from.
-        @param topic Message topic.
+        @param dataIdentifier Message data identifier object.
         @param data Message bytes.
         """
-        dataIdentifier = DataIdentifier(broker, topic)
         for device, deviceGuard in self.guardedDevices.items():
             result = deviceGuard.messageReceived(dataIdentifier, data)
             for di, alarms in result.updateGuardMapping.items():
