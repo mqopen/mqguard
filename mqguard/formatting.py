@@ -250,7 +250,7 @@ class JSONDevicesUpdateFormatting(JSONUpdateFormatting):
 
     def createReasons(self, deviceReport):
         return {
-            "presnce": self.createPresenceReason(deviceReport),
+            "presence": self.createPresenceReason(deviceReport),
             "guards": self.createGuardsReasons(deviceReport)}
 
     def createPresenceReason(self, deviceReport):
